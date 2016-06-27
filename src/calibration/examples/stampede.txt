@@ -1,0 +1,404 @@
+Analysis of Pont-to-point experiments of MPI calls
+==================================================
+
+```r
+opts_chunk$set(cache=FALSE,dpi=300,echo=FALSE)
+```
+
+
+If needed, you should install the right packages (plyr, ggplot2, and
+knitr) with the install.packages command.
+
+```
+## Loading required package: plyr
+## Loading required package: ggplot2
+## Loading required package: methods
+## Loading required package: XML
+```
+Load XML config file and .csv resulting files from the MPI execution
+
+
+```
+## Error: XML content does not seem to be XML: 'stampede.xml'
+```
+
+```
+## Error in xpathApply(doc, path, fun, ..., namespaces = namespaces, sessionEncoding = sessionEncoding, : object 'config' not found
+```
+
+```
+## Error in xpathApply(doc, path, fun, ..., namespaces = namespaces, sessionEncoding = sessionEncoding, : object 'config' not found
+```
+
+```
+## Error in xpathApply(doc, path, fun, ..., namespaces = namespaces, sessionEncoding = sessionEncoding, : object 'config' not found
+```
+
+```
+## Error in xpathApply(doc, path, fun, ..., namespaces = namespaces, sessionEncoding = sessionEncoding, : object 'config' not found
+```
+
+```
+## Error in xpathApply(doc, path, fun, ..., namespaces = namespaces, sessionEncoding = sessionEncoding, : object 'config' not found
+```
+
+```
+## Error in xpathApply(doc, path, fun, ..., namespaces = namespaces, sessionEncoding = sessionEncoding, : object 'config' not found
+```
+
+```
+## Error in xpathApply(doc, path, fun, ..., namespaces = namespaces, sessionEncoding = sessionEncoding, : object 'config' not found
+```
+
+```
+## Error in xpathApply(doc, path, fun, ..., namespaces = namespaces, sessionEncoding = sessionEncoding, : object 'config' not found
+```
+
+```
+## Error in xpathApply(doc, path, fun, ..., namespaces = namespaces, sessionEncoding = sessionEncoding, : object 'config' not found
+```
+
+```
+## Error in xpathApply(doc, path, fun, ..., namespaces = namespaces, sessionEncoding = sessionEncoding, : object 'config' not found
+```
+
+```
+## Error in paste0(prefix, "_PingPong.csv"): object 'prefix' not found
+```
+
+```
+## Error in eval(expr, envir, enclos): object 'df_pingpong' not found
+```
+
+```
+## Error in eval(expr, envir, enclos): object 'df_pingpong' not found
+```
+
+```
+## Error in data.frame(Op = unique("PingPong"), Size = df_send$Size, Start = df_send$Start, : object 'df_send' not found
+```
+
+```
+## Error in paste0(prefix, "_Isend.csv"): object 'prefix' not found
+```
+
+```
+## Error in paste0(prefix, "_Recv.csv"): object 'prefix' not found
+```
+
+```
+## Error in paste0(prefix, "_Wtime.csv"): object 'prefix' not found
+```
+
+```
+## Error in paste0(prefix, "_Test.csv"): object 'prefix' not found
+```
+
+```
+## Error in paste0(prefix, "_Iprobe.csv"): object 'prefix' not found
+```
+
+```
+## Error in nrow(df_send): object 'df_send' not found
+```
+
+```
+## Error in empty(.data): object 'df_send' not found
+```
+
+```
+## Error in eval(expr, envir, enclos): object 'df_send' not found
+```
+
+```
+## Error in nrow(df_isend): object 'df_isend' not found
+```
+
+```
+## Error in empty(.data): object 'df_isend' not found
+```
+
+```
+## Error in eval(expr, envir, enclos): object 'df_isend' not found
+```
+
+```
+## Error in nrow(df_recv): object 'df_recv' not found
+```
+
+```
+## Error in empty(.data): object 'df_recv' not found
+```
+
+```
+## Error in eval(expr, envir, enclos): object 'df_recv' not found
+```
+
+```
+## Error in read.table(file = file, header = header, sep = sep, quote = quote, : object 'breakpoints_file' not found
+```
+
+```
+## Error in rbind(bp, vec): object 'bp' not found
+```
+
+```
+## Error in eval(expr, envir, enclos): object 'bp' not found
+```
+
+```
+## Error in eval(expr, envir, enclos): object 'v' not found
+```
+
+```
+## Error in eval(expr, envir, enclos): object 'bp' not found
+```
+
+MPI_Send timing
+---------------
+
+Timings for this experiment are taken from a ping-pong experiment, used to determine os.
+
+We determine the piecewiese regression based on information taken from the regression file pointed in the XML configuration file
+
+
+```
+## Error in print(bp): object 'bp' not found
+```
+
+```
+## Error in d$group = as.character("outliers"): object 'df_send' not found
+```
+
+```
+## Error in compute_lm(bp, df_send, "Os", remove_sync = TRUE): object 'bp' not found
+```
+Display the regression factors to help tuning.
+
+```
+## Error in display_lm(df_send, remove_sync = TRUE): object 'bp' not found
+```
+Visual representation of the computed data, to visualize correctness of the computed value.
+
+The black line representing the regression should be very close to the values, and should drop to 0 when communications use the rendez-vous algorithm (Large messages, with a size > eager_threshold).
+
+If they are not, tune the breakpoints in order to match more closely to your implementation. Thresholds for eager and detached messages depend on the library and the hardware used. Consult the documentation of your library on how to display this information if you can't visually determine it (For Ethernet network we saw values of 65536, while IB networks had values of 12288 or 17408 depending on the implementation)
+
+
+```
+## Error in lapply(X = X, FUN = FUN, ...): object 'df_send' not found
+```
+MPI_Isend timing
+---------------
+
+As they may differ from Send times, check this and call it ois, to inject proper timings later.
+
+
+```
+## Error in d$group = as.character("outliers"): object 'df_isend' not found
+```
+
+```
+## Error in compute_lm(bp, df_isend, "Ois", remove_sync = T): object 'bp' not found
+```
+Display the regression factors to help tuning
+
+```
+## Error in display_lm(df_isend, remove_sync = T): object 'bp' not found
+```
+Visual representation of the computed data, to visualize correctness of the computed value
+
+```
+## Error in lapply(X = X, FUN = FUN, ...): object 'df_isend' not found
+```
+
+MPI_Recv timing
+---------------
+
+Timings are used to determine or. This experiment waits for a potentially eager message to arrive before launching the recv for small message size, eliminating waiting times as much as possible.
+
+
+```
+## Error in d$group = as.character("outliers"): object 'df_recv' not found
+```
+
+```
+## Error in compute_lm(bp, df_recv, "Or", remove_detached = TRUE): object 'bp' not found
+```
+Display the regression factors to help tuning
+
+```
+## Error in display_lm(df_recv, remove_detached = TRUE): object 'bp' not found
+```
+Visual representation of the computed data, to visualize correctness of the computed value
+
+```
+## Error in lapply(X = X, FUN = FUN, ...): object 'df_recv' not found
+```
+
+Pingpong timing
+---------------
+
+pingpong = 2or+2transfer for small messages that are sent
+  asynchronously.  For large sizes, communications are synchronous,
+  hence we have pingpong = 2transfer.
+
+
+```
+## Error in d$group = as.character("outliers"): object 'df_pingpong' not found
+```
+
+```
+## Error in compute_lm(bp, df_pingpong, "PingPong"): object 'bp' not found
+```
+
+```
+## Error in display_lm(df_pingpong): object 'bp' not found
+```
+
+```
+## Error in lapply(X = X, FUN = FUN, ...): object 'df_pingpong' not found
+```
+
+```
+## Error in eval(expr, envir, enclos): object 'bp' not found
+```
+
+```
+## Error in eval(expr, envir, enclos): object 'bp' not found
+```
+
+```
+## Error in lapply(X = X, FUN = FUN, ...): object 'df_pingpong' not found
+```
+
+```
+## Error in eval(expr, envir, enclos): object 'df_pingpong' not found
+```
+
+```
+## Error in ggplot(data = df_pingpong, aes(x = Size, y = Duration2, color = group)): object 'df_pingpong' not found
+```
+
+```
+## Error in eval(expr, envir, enclos): object 'pl' not found
+```
+
+Print results in Simgrid's xml format
+
+  
+  ```
+  ## Error in empty(.data): object 'bp' not found
+  ```
+  
+  ```
+  ## Error in empty(.data): object 'bp' not found
+  ```
+  
+  ```
+  ## Error in empty(.data): object 'bp' not found
+  ```
+  
+  ```
+  ## Error in empty(.data): object 'bp' not found
+  ```
+  
+  ```
+  ## Error in empty(.data): object 'bp' not found
+  ```
+  
+  ```
+  ## Error in order(Name, Limit): object 'Name' not found
+  ```
+  
+  ```
+  ## Error in xmlNode("prop", attrs = c(id = "smpi/async_small_thres", value = eager_threshold)): object 'eager_threshold' not found
+  ```
+  
+  ```
+  ## Error in xmlNode("prop", attrs = c(id = "smpi/send_is_detached_thres", : object 'detached_threshold' not found
+  ```
+  
+  ```
+  ## Error in as.character(x): cannot coerce type 'closure' to vector of type 'character'
+  ```
+MPI_Wtime timing
+---------------
+
+We made a run with 10 millions calls to MPI\_Wtime and we want to know the time of one call
+
+
+```
+## Error in eval(expr, envir, enclos): object 'df_wtime' not found
+```
+Time for one MPI_Wtime call
+
+```
+## Error in print(wtime): object 'wtime' not found
+```
+
+```
+## Error in addChildren(a, xmlNode("prop", attrs = c(id = "smpi/wtime", value = paste0(wtime)))): object 'a' not found
+```
+MPI_Iprobe timing
+----------------
+We made 1000 runs of pingpong with pollling on MPI\_Iprobe. Compute the Duration of such a call, and check whether its time is related to the size of the message
+
+
+```
+## Error in ggplot(data, aesthetics, environment = env): object 'df_iprobe' not found
+```
+
+```
+## Error in mean(df_iprobe$Duration, trim = 0.1): object 'df_iprobe' not found
+```
+Time for one MPI_Iprobe call
+
+```
+## Error in print(iprobe): object 'iprobe' not found
+```
+
+```
+## Error in addChildren(a, xmlNode("prop", attrs = c(id = "smpi/iprobe", : object 'a' not found
+```
+
+MPI_Test timing
+---------------
+
+
+```
+## Error in ggplot(data, aesthetics, environment = env): object 'df_test' not found
+```
+
+```
+## Error in mean(df_test$Duration, trim = 0.1): object 'df_test' not found
+```
+Time for one MPI_Test call
+
+```
+## Error in print(test): object 'test' not found
+```
+
+```
+## Error in addChildren(a, xmlNode("prop", attrs = c(id = "smpi/test", value = paste0(test)))): object 'a' not found
+```
+
+
+Result of calibration.
+---------------
+
+The following snippet of XML has to be included at the beginning of your platformfile. Please report to the SimGrid mailing list any bug with the calibration or the generated platform file.
+
+
+```
+## Error in print(a): object 'a' not found
+```
+
+```
+## Error in paste0(prefix, ".xml"): object 'prefix' not found
+```
+
+```
+## Error in saveXML(a, file = paste0(prefix, paste0("output_", ".xml"))): error in evaluating the argument 'doc' in selecting a method for function 'saveXML': Error: object 'a' not found
+```
+
