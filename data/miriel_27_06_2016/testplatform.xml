@@ -1,0 +1,29 @@
+<?xml version="1.0"?>
+<config id="Config">
+<!-- prefix name for the output files -->
+ <prefix value="testplatform"/>
+<!-- directory name for the output files (as seen from calibrate.c) -->
+ <dirname value="data/miriel_27_06_2016"/>
+
+
+<!-- Name of the file that contains all message sizes we can choose from. -->
+ <sizeFile value="zoo_sizes"/>
+<!-- Minimum size of the messages to send-->
+ <minSize value="0"/>
+<!-- Maximum size of the messages to send-->
+ <maxSize value="1000000"/>
+<!-- Number of iterations per size of message-->
+ <iterations value="5"/>
+<!-- Outliers removal - Remove n minimum and maximum times per run-->
+ <outliers_threshold value="0.1"/>
+
+<!-- File containing the breakpoints; breakpoints define the begin/end of any segment of the (segmented) regression -->
+ <breakpoints_file value="testplatform_breakpoints"/>
+ <eager_threshold value="17408"/>
+ <detached_threshold value="17408"/>
+
+ <!-- This value will be used only when generating the output file, i.e., solely for your convenience -->
+ <expected_bandwidth value="1e9"/>
+ <!-- This value will be used only when generating the output file, i.e., solely for your convenience -->
+ <expected_latency value="5e-5"/>
+</config>
