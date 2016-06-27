@@ -1,0 +1,314 @@
+#+TITLE: Obtaining Platform Description for SimGrid
+#+AUTHOR: Augustin Degomme, Christian Heinrich, Luka Stanisic, ...
+#+LANGUAGE:  en
+#+STARTUP: inlineimages
+#+OPTIONS: H:3 num:t toc:t \n:nil @:t ::t |:t ^:nil -:t f:t *:t <:t
+#+OPTIONS: TeX:t LaTeX:t skip:nil d:nil todo:nil pri:nil tags:not-in-toc
+#+EXPORT_SELECT_TAGS: export
+#+EXPORT_EXCLUDE_TAGS: noexport
+#+TAGS: noexport(n)
+#+TAGS: LUKA(L) AUGUSTIN(A) CHRISTIAN(C)
+#+TAGS: @miriel(m) @stampede(s) @griffon(g)
+
+* Documentation
+** README
+
+   Small description of this project, it main goals
+
+** Main steps
+
+  1. Write a platform topology in .xml, consulting platform
+     description from hardware vendor or machine administrators. Put
+     some default values for bandwidth and latency. In future we hope
+     to do this automatically using tools such as netloc.
+  2. Calibrate the machine following the steps in "SMPI Calibration's
+     documentation" from Augustin Degomme:
+     http://simgrid.gforge.inria.fr/contrib/smpi-calibration-doc.php. This
+     provides breakpoints and values that should be added to the
+     platform description.
+  3. To model the backbone, its latency and contention, follow the
+     documentation:
+     http://simgrid.gforge.inria.fr/contrib/smpi-saturation-doc.php.
+
+* Experiments
+** Old initial calibration of homogeneous plafrim miriel machine :LUKA:@miriel:
+   
+   This is an old example of the workflow, performed even before this
+   project was set in place. Paths and code organization have change
+   in the new project, but the workflow is similar.
+
+   Measurements were done on plafrim platform, miriel nodes, on 15.06.2016
+
+*** Calibration
+
+   Copy or clone platform_calibration project to the machine you want
+   to calibrate.
+
+   There are 2 important files which are used as inputs for the
+   calibration: breakpoints and configuration file. They should be
+   copied into working folder and edited before running the
+   calibration. Pay attention to the names and folder paths. Also
+   expected bandwidth and latency chosen for the configuration file
+   should be later used for the final platform description.
+
+#+begin_src sh :results output
+mkdir analysis/plafrim_15_06_16
+
+rm -rf smpi-calibration/data
+mkdir smpi-calibration/data
+
+cp template/testplatform* analysis/plafrim_15_06_16/
+#+end_src
+
+   Be sure that macine has /usr/include/libxml2/libxml installed. If
+   it is missing, install it and add its path to the Makefile.
+
+#+begin_src sh :results output
+#For debian machine simply do
+sudo apt-get install libxml2-dev
+#+end_src
+   
+   Compile smpi-calibration on the target machine. If needed add the
+   necessary modules.
+
+#+begin_src sh :results output
+#For plafrim add for example MPICH module
+module load mpi/mpich/ge/gcc/64/3.1
+
+cd smpi-calibration
+
+mpicc -o calibrate calibrate.c experiments.c -I/usr/include/libxml2 -lxml2
+
+cd ..
+#+end_src
+
+
+   When correctly compiled, reserve your nodes (if necessary). Example
+   for short reservation of two nodes on plafrim is the following.
+
+#+begin_src sh :results output
+salloc -N2 -t 00:30:00
+#+end_src
+
+   Now, run the calibration script to measure the machine. Do it
+   either by using mpirun/srun (currently not working on plafrim for
+   an unknown reason) or by launching the batch script. Here are few
+   examples of the command lines to run (choose the one appropriate
+   for your machine).
+
+#+begin_src sh :results output
+mpirun -np 2 -L miriel026,miriel027 ./calibrate -f data/testplatform.xml
+srun -N2 ./calibrate -f data/testplatform.xml
+sbatch sbatch_calibration
+#+end_src
+
+   Here is an example of the sbatch script for running the
+   calibration.
+
+#+begin_src sh :results output
+#!/usr/bin/env bash
+#Job name
+#SBATCH -J calibration
+# Asking for N nodes
+#SBATCH -N 2
+# Output results message
+#SBATCH -o %j.out
+# Output error message
+#SBATCH -e %j.err
+
+# #SBATCH -p longq
+module purge
+module load slurm/14.03.0
+module load mpich/ge/gcc/64/3.1.4
+
+FOLDER=/home-ext/stanisic/platform_calibration
+
+mpirun -np 2 $FOLDER/smpi-calibration/calibrate -f $FOLDER/template/testplatform.xml -s $FOLDER/smpi-calibration/zoo_sizes
+#+end_src
+
+#+begin_src sh :results output
+sbatch sbatch_calibration
+#+end_src
+
+   After executing calibration, on plafrim, delete unnecessary output
+   files and finish the reservation. On plafrim for 2 miriel nodes,
+   default calibration takes around 1-2 minutes.
+
+#+begin_src sh :results output
+rm *.err *.out
+scancel -u stanisic
+#+end_src
+
+   Copy obtained results in the folder envisioned for the
+   analysis. Add analysis file to the same folder as well.
+
+#+begin_src sh :results output
+scp plafrim2:platform_calibration/data/* analysis/plafrim_15_06_16/
+
+cp smpi-calibration/Analysis.Rmd analysis/plafrim_15_06_16/
+cp smpi-calibration/Makefile analysis/plafrim_15_06_16/
+#+end_src
+
+   Now an initial analysis of the obtained data can be performed. If
+   you are missing some R packages, consult the initial [[http://simgrid.gforge.inria.fr/contrib/smpi-calibration-doc.php][tutorial]].
+
+#+begin_src sh :results output
+cd analysis/plafrim_15_06_16/
+
+make testplatform.html
+firefox testplatform.html
+#+end_src
+   
+   Results are promissing, but breakpoints can probably be choosen
+   evne better. We can try this configuration.
+
+#+begin_src sh :results output :session org-sh
+1420, Small
+65536, Medium
+131072, Asynchronous
+450000, Detached
+#+end_src
+
+   Results are not perfect, but there is no need to search for more
+   accurate ones as the calibration already probably has significant
+   noise and it should be performed much more exhaustively.
+
+   Now the results of the calibrations should be added to the final
+   platform description. be sure that the bandwidth and latency values
+   written in this final platform description are the same ones use
+   for the initial calibration(in testplatform.xml). In the case of
+   plafrim, for now we make a simple example.
+
+#+BEGIN_SRC 
+<?xml version='1.0'?>
+<!DOCTYPE platform SYSTEM "http://simgrid.gforge.inria.fr/simgrid.dtd">
+<!--             _________
+                |          |
+                |  router  |
+    ____________|__________|_____________ backbone
+      |   |   |              |     |   |  	
+    l0|	l1| l2|           l97| l96 |   | l99
+      |   |   |   ........   |     |   |
+      |                                |
+  node-0.acme.org                  node-99.acme.org
+-->
+<platform version="3">
+	<!--
+  <cluster id="acme"
+           prefix="node-"    suffix=".acme.org"
+           radical="0-99"    power="1Gf" 
+           bw="1GBps"      lat="50us"
+           bb_bw="10GBps"  bb_lat="500us"/>
+--> 
+
+<config id="General">
+ <prop id="smpi/os" value="0:1.72337677392447e-06:2.80556540986036e-10;1420:0:0;65536:0:0;131072:0:0;450000:0:0"/>
+ <prop id="smpi/ois" value="0:1.79150437795041e-06:2.60957841144294e-10;1420:0:0;65536:0:0;131072:0:0;450000:0:0"/>
+ <prop id="smpi/or" value="0:3.27843243070814e-06:3.41675771019744e-09;1420:0:0;65536:0:0;131072:0:0;450000:0:0"/>
+ <prop id="smpi/bw_factor" value="0:0.057020586149179;1420:0.955647413834744;65536:1.55105118737739;131072:0.683839496893133;450000:0.613154277278705"/>
+ <prop id="smpi/lat_factor" value="0:0.421545218360744;1420:1.15371118224093;65536:1.89572829187563;131072:1.77078433749545;450000:0.698058157888401"/>
+ <prop id="smpi/async_small_thres" value="17408"/>
+ <prop id="smpi/send_is_detached_thres" value="17408"/>
+ <prop id="smpi/wtime" value="4.08585e-08"/>
+ <prop id="smpi/iprobe" value="2.56968726731199e-07"/>
+ <prop id="smpi/test" value="2.45836195508587e-07"/>
+</config>
+
+<AS  id="AS0"  routing="Vivaldi">	 
+  <cluster id="acme"
+           prefix="node-"    suffix=".acme.org"
+           radical="0-99"    power="1Gf" 
+	   bw="1GBps"      lat="50us"
+           bb_bw="10GBps"  bb_lat="500us"/>
+</AS>
+   
+</platform>
+#+END_SRC
+
+     Next phase is to calibrate the backbone link using [[http://simgrid.gforge.inria.fr/contrib/smpi-saturation-doc.php][another tutorial]].
+
+*** Saturation
+
+    The idea is to measure the latency and bandwidth of the backbone
+    link, following this [[http://simgrid.gforge.inria.fr/contrib/smpi-saturation-doc.php][tutorial]].
+    
+    First compile saturation script.
+
+#+begin_src sh :results output
+module load mpich/ge/gcc/64/3.1.4
+
+mpicc -o saturation alltoall_loadtest.c
+#+end_src
+
+    Then run mpirun/srun or create a batch script like this to run the
+    tests.
+
+#+begin_src sh :results output
+#!/usr/bin/env bash
+#Job name
+#SBATCH -J saturation
+# Asking for N nodes
+#SBATCH -N 4
+# Output results message
+#SBATCH -o %j.out
+# Output error message
+#SBATCH -e %j.err
+
+# #SBATCH -p longq
+module purge
+module load slurm/14.03.0
+module load mpich/ge/gcc/64/3.1.4
+
+FOLDER=/home-ext/stanisic/platform_calibration
+
+mpirun -np 4 $FOLDER/smpi-saturation/saturation
+#+end_src
+
+#+begin_src sh :results output
+sbatch sbatch_saturation
+#+end_src
+
+    This took only few seconds for 4 nodes execution.
+
+    Now copy the results on a local machine for the analysis.
+
+#+begin_src sh :results output
+mkdir analysis/plafrim_15_06_16/saturation
+
+scp plafrim2:platform_calibration/*.csv analysis/plafrim_15_06_16/saturation
+
+cp smpi-saturation/LoadAnalyze.Rnw analysis/plafrim_15_06_16/saturation
+cp smpi-saturation/Makefile analysis/plafrim_15_06_16/saturation
+#+end_src
+    
+    Then delete then data on a target machine.
+
+#+begin_src sh :results output
+rm *.csv *.out *.err
+#+end_src
+
+    Finally, analyze the measured saturation data.
+
+#+begin_src sh :results output
+cd analysis/plafrim_15_06_16/saturation
+
+make
+#+end_src
+
+    You might miss french babel package, in which case install it
+    with. Also, the initial Makefile is slightly modified when
+    cleaning the repository of the .tex files.
+
+#+begin_src sh :results output
+sudo aptitude install texlive-lang-french
+#+end_src
+
+    Then, inspect the generated .pdf report. At this point it is hard
+    to get some some conclusive statements, as only 4 MPI nodes were
+    used to test saturation. Probably with 16 or more then results
+    will be more interesting.
+
+    The whole workflow seems to work fine, but not sure how to
+    interpret results. Probably need to see this with Augustin. In any
+    case, if I understood correctly, the latency of the backbone
+    should probably be fixed to 0. We will leave the bb_bandwidth at 10GBps for now
