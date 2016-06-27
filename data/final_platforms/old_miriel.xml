@@ -1,0 +1,43 @@
+<?xml version='1.0'?>
+<!DOCTYPE platform SYSTEM "http://simgrid.gforge.inria.fr/simgrid.dtd">
+<!--             _________
+                |          |
+                |  router  |
+    ____________|__________|_____________ backbone
+      |   |   |              |     |   |  	
+    l0|	l1| l2|           l97| l96 |   | l99
+      |   |   |   ........   |     |   |
+      |                                |
+  node-0.acme.org                  node-99.acme.org
+-->
+<platform version="3">
+	<!--
+  <cluster id="acme"
+           prefix="node-"    suffix=".acme.org"
+           radical="0-99"    power="1Gf" 
+           bw="1GBps"      lat="50us"
+           bb_bw="10GBps"  bb_lat="500us"/>
+--> 
+
+<config id="General">
+ <prop id="smpi/os" value="0:1.72337677392447e-06:2.80556540986036e-10;1420:0:0;65536:0:0;131072:0:0;450000:0:0"/>
+ <prop id="smpi/ois" value="0:1.79150437795041e-06:2.60957841144294e-10;1420:0:0;65536:0:0;131072:0:0;450000:0:0"/>
+ <prop id="smpi/or" value="0:3.27843243070814e-06:3.41675771019744e-09;1420:0:0;65536:0:0;131072:0:0;450000:0:0"/>
+ <prop id="smpi/bw_factor" value="0:0.057020586149179;1420:0.955647413834744;65536:1.55105118737739;131072:0.683839496893133;450000:0.613154277278705"/>
+ <prop id="smpi/lat_factor" value="0:0.421545218360744;1420:1.15371118224093;65536:1.89572829187563;131072:1.77078433749545;450000:0.698058157888401"/>
+ <prop id="smpi/async_small_thres" value="17408"/>
+ <prop id="smpi/send_is_detached_thres" value="17408"/>
+ <prop id="smpi/wtime" value="4.08585e-08"/>
+ <prop id="smpi/iprobe" value="2.56968726731199e-07"/>
+ <prop id="smpi/test" value="2.45836195508587e-07"/>
+</config>
+
+<AS  id="AS0"  routing="Vivaldi">	 
+  <cluster id="acme"
+           prefix="node-"    suffix=".acme.org"
+           radical="0-99"    power="1Gf" 
+	   bw="1GBps"      lat="50us"
+           bb_bw="10GBps"  bb_lat="500us"/>
+</AS>
+   
+</platform>
