@@ -440,3 +440,84 @@ Limit, Name
 ##  <prop id="smpi/test" value="2.60107333333333e-07"/>
 ## </config>
 #+END_SRC
+
+
+*** Saturation
+
+    Compiling code on the target machine.
+
+#+begin_src sh :results output
+cd src/saturation
+
+module load mpich/ge/gcc/64/3.1.4
+
+mpicc -o saturation alltoall_loadtest.c
+
+cd -
+#+end_src
+
+    Launching saturation script. Normally the script itself doesnt
+    take so much time to execute, but since it demands for 16 nodes,
+    this can take some time.
+
+#+begin_src sh :results output
+sbatch sbatch_plafrim_saturation
+#+end_src
+
+    The example of the batch script.
+
+#+begin_src sh :results output
+#!/usr/bin/env bash
+#Job name
+#SBATCH -J saturation
+# Asking for N nodes
+#SBATCH -N 16
+# Output results message
+#SBATCH -o %j.out
+# Output error message
+#SBATCH -e %j.err
+
+#SBATCH -p longq
+module purge
+module load slurm/14.03.0
+module load mpich/ge/gcc/64/3.1.4
+
+FOLDER=/home-ext/stanisic/platform-calibration
+
+mpirun -np 16 $FOLDER/src/saturation/saturation
+#+end_src
+
+    When the execution is finished, copy the results into the right
+    data folder.
+
+#+begin_src sh :results output
+mkdir data/miriel_27_06_2016/saturation
+
+cp *.csv data/miriel_27_06_2016/saturation
+#+end_src
+
+    Delete the unnecessary files.
+
+#+begin_src sh :results output
+rm *.err *.out *.csv
+scancel -u stanisic
+#+end_src
+
+    Finally, analyze the measured saturation data on the local
+    machine. Check the generated .pdf, especially looking at the
+    second figure, which should provide the "bb_ban" value.
+
+#+begin_src sh :results output
+cd data/miriel_27_06_2016/saturation
+
+cp ../../../src/saturation/LoadAnalyze.Rnw ../../../src/saturation/Makefile .
+
+make
+#+end_src
+
+    Everything went fine, but the values tested are not well adapted
+    for the Omnipath network, as we have not yet reach the peak of the
+    link bandwidth.
+
+    Probably need to redo this saturation tests with different input
+    values, to better test limits of the network.
