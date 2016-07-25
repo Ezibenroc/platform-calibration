@@ -134,7 +134,7 @@ v <- bp$Limit
        group_list = bp$Name
     }
     if(remove_detached) {
-       group_list = bp[bp$Limit<detached_threshold,]$Name
+       group_list = bp[bp$Limit<=detached_threshold,]$Name
     }
     mylm <- ddply(d[d$group %in% (group_list),],
                    c("group"), function(x) {
@@ -230,7 +230,8 @@ As they may differ from Send times, check this and call it ois, to inject proper
 ```{r}
 
   df_isend <- classify_messages(df_isend)
-  bp <- compute_lm(bp,df_isend,"Ois",remove_sync=T)
+  # We want to inject timings in all MPI_Isend, even the large ones. Hence remove_sync=F
+  bp <- compute_lm(bp,df_isend,"Ois",remove_sync=F)
 ```
 Display the regression factors to help tuning
 ```{r}
