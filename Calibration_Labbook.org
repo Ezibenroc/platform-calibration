@@ -561,7 +561,7 @@ directories. The actual taurus.xml can now be found at [[file:./data/taurus/cali
 cd src/smpi-calibration
 for i in {1..9}; do
   mkdir taurus-2016-06-09–$i
-  cp taurus/taurus.xml taurus-2016-06-09--$i          
+  cp taurus/taurus.xml taurus-2016-06-09--$i
   cp taurus/taurus_breakpoints taurus-2016-06-09--$i
   sed -i -e 's/"taurus"/"taurus-2016-06-09--'$i'"/' taurus-2016-06-09--$i/taurus.xml
 done
@@ -583,3 +583,11 @@ done
 #+end_src
 
 I added the =sleep= to allow some time to pass (just in case there was something going on in the system).
+
+*** Saturation
+
+#+begin_src sh :results output :exports both
+uniq $OAR_NODE_FILE | /bin/grep "taurus" >| taurus-hostnames
+mpicc alltoall_loadtest.c -o saturation -O3
+mpirun -np 12 --mca plm_rsh_agent 'ssh' --mca pml ob1 --mca btl tcp,self -machinefile ./taurus-hostnames saturation
+#+end_src
