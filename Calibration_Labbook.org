@@ -521,3 +521,65 @@ make
 
     Probably need to redo this saturation tests with different input
     values, to better test limits of the network.
+
+** Taurus machine in Lyon                                        :CHRISTIAN:
+
+*** Reservation
+
+The taurus machine shares a single switch with both orion and hercule
+clusters. We’ve observed that experiments are not reliable if these
+two clusters are not reserved as well, since the switch does not
+isolate all clusters from each other. 
+
+Hence, the code that I used to reserve the clusters:
+
+#+begin_src sh :results output :exports both
+oarsub -t deploy -l "{cluster in ('taurus', 'orion', 'hercule')}/nodes=ALL,walltime=00:55" -r "$(date '+%Y-%m-%d %H:%M:%S')"
+#+end_src
+
+This attempts to obtain a reservation right away, but one can modify the
+reservation for a specific date like this:
+
+#+begin_src sh :results output :exports both
+oarsub -t deploy -l "{cluster in ('taurus', 'orion', 'hercule')}/nodes=ALL,walltime=12:50" -r "$(date '+%Y-%m-%d %H:%M:%S' --date="2016-07-25 19:00:00")"
+#+end_src
+
+Anyways, after that I deployed my own =debian_stretch= image via
+=kadeploy3=:
+
+#+begin_src sh :results output :exports both
+kadeploy3 -a /home/cheinrich/debian_stretch.env -f $OAR_FILE_NODES -k
+#+end_src
+
+*** Calibration
+
+I already had a taurus.xml set up and since I wanted to run the
+calibration several times, I just copied it to all the
+directories. The actual taurus.xml can now be found at [[file:./data/taurus/calibration/taurus.xml]].
+
+#+begin_src sh :results output :exports both
+cd src/smpi-calibration
+for i in {1..9}; do
+  mkdir taurus-2016-06-09–$i
+  cp taurus/taurus.xml taurus-2016-06-09--$i          
+  cp taurus/taurus_breakpoints taurus-2016-06-09--$i
+  sed -i -e 's/"taurus"/"taurus-2016-06-09--'$i'"/' taurus-2016-06-09--$i/taurus.xml
+done
+#+end_src
+
+Then I compiled the calibration:
+
+#+begin_src sh :results output :exports both
+mpicc -o calibrate calibrate.c experiments.c -I/usr/include/libxml2 -lxml2
+#+end_src
+
+and executed it (after =taurus-hostnames= was created and/or updated):
+
+#+begin_src sh :results output :exports both
+for i in {1..9}; do
+  mpirun -np 2 --mca pml ob1 --mca btl tcp,self -machinefile taurus-hostnames ./calibrate -f taurus-2016-06-09--$i/taurus.xml
+  sleep 20
+done
+#+end_src
+
+I added the =sleep= to allow some time to pass (just in case there was something going on in the system).

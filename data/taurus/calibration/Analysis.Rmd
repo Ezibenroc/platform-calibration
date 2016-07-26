@@ -1,0 +1,391 @@
+Analysis of Pont-to-point experiments of MPI calls
+==================================================
+```{r}
+opts_chunk$set(cache=FALSE,dpi=300,echo=FALSE)
+```
+
+
+If needed, you should install the right packages (plyr, ggplot2, and
+knitr) with the install.packages command.
+```{r}
+
+#Impossible to use require with a functionparameter, so no function to avoid copying this n times
+if(!require("plyr")) {
+    print("trying to install plyr")
+    install.packages("plyr", repos = "http://cran.r-project.org")
+    if(require(plyr)){
+        print("plyr installed and loaded")
+    } else {
+        stop("could not install plyr")
+    }
+}
+
+if(!require("ggplot2")){
+    print("trying to install ggplot2")
+    install.packages("ggplot2", repos = "http://cran.r-project.org")
+    if(require(ggplot2)){
+        print("ggplot2 installed and loaded")
+    } else {
+        stop("could not install ggplot2")
+    }
+}
+
+if(!require("XML")){
+    print("trying to install XML")
+    install.packages("XML", repos = "http://cran.r-project.org")
+    if(require(XML)){
+        print("XML installed and loaded")
+    } else {
+        stop("could not install XML")
+    }
+}
+
+```
+Load XML config file and .csv resulting files from the MPI execution
+
+```{r}
+
+config <- xmlParse(input)
+prefix <- sapply(getNodeSet(config, "//prefix"), function(el) xmlGetAttr(el, "value"))
+minSize <- sapply(getNodeSet(config, "//minSize"), function(el) xmlGetAttr(el, "value"))
+maxSize <- sapply(getNodeSet(config, "//maxSize"), function(el) xmlGetAttr(el, "value"))
+iterations <-  as.integer(sapply(getNodeSet(config, "//iterations"), function(el) xmlGetAttr(el, "value")))
+breakpoints_file <- sapply(getNodeSet(config, "//breakpoints_file"), function(el) xmlGetAttr(el, "value"))
+outliers_threshold <-  as.numeric(sapply(getNodeSet(config, "//outliers_threshold"), function(el) xmlGetAttr(el, "value")))
+
+eager_threshold <- as.integer(sapply(getNodeSet(config, "//eager_threshold"), function(el) xmlGetAttr(el, "value")))
+detached_threshold <- as.integer(sapply(getNodeSet(config, "//detached_threshold"), function(el) xmlGetAttr(el, "value")))
+
+expected_bandwidth <- as.double(sapply(getNodeSet(config, "//expected_bandwidth"), function(el) xmlGetAttr(el, "value")))
+expected_latency <- as.double(sapply(getNodeSet(config, "//expected_latency"), function(el) xmlGetAttr(el, "value")))
+
+
+read_csv <- function(file) {
+  df <- read.csv(file, header=FALSE, strip.white=TRUE)
+  names(df) <- c("Op","Size","Start", "Duration")
+  df$Origin=file
+  df
+}
+
+remove_outliers <-function(duration, thres=outliers_threshold) {
+  qnt <- quantile(duration, probs=c(thres, 1-thres))
+  outliers <- ifelse((duration<qnt[1] | duration>qnt[2]), 1,0)
+  outliers
+}
+
+
+df_pingpong <- read_csv(paste0(prefix,"_PingPong.csv"))
+df_send <-  df_pingpong[df_pingpong$Op=="MPI_Send",]
+df_recvs <- df_pingpong[df_pingpong$Op=="MPI_Recv",]
+
+
+df_pingpong <- data.frame( Op = unique("PingPong"),
+                   Size = df_send$Size,
+                   Start = df_send$Start,
+                   Duration = df_recvs$Duration + df_send$Duration,
+                   Origin = unique(df_send$Origin))
+
+
+df_isend <- read_csv(paste0(prefix,"_Isend.csv"))
+df_recv <- read_csv(paste0(prefix,"_Recv.csv"))
+df_wtime <- read_csv(paste0(prefix,"_Wtime.csv"))
+df_test <- read_csv(paste0(prefix,"_Test.csv"))
+df_iprobe <- read_csv(paste0(prefix,"_Iprobe.csv"))
+
+
+#remove outliers
+df_send$experiment <-floor((as.numeric(1:nrow(df_send))-1)/10)
+df_send <- ddply(df_send, .(experiment), transform, outliers=remove_outliers(Duration))
+df_send <-df_send [df_send$outliers==0,]
+
+df_isend$experiment <-floor((as.numeric(1:nrow(df_isend))-1)/10)
+df_isend <- ddply(df_isend, .(experiment), transform, outliers=remove_outliers(Duration))
+df_isend <-df_isend [df_isend$outliers==0,]
+
+df_recv$experiment <-floor((as.numeric(1:nrow(df_recv))-1)/10)
+df_recv <- ddply(df_recv, .(experiment), transform, outliers=remove_outliers(Duration))
+
+df_recv <-df_recv [df_recv$outliers==0,]
+
+#read breakpoint file
+options(stringsAsFactors = FALSE)
+
+bp <- read.csv(breakpoints_file, header=TRUE, strip.white=TRUE)
+vec<-list(.Machine$integer.max, "Large")
+bp <- rbind(bp, vec)
+v <- bp$Limit
+   bp$LimitInf <- c(0,v[1:length(v)-1])
+   bp$Name <- as.character(bp$Name)
+
+#Analysis Functions
+
+ classify_messages <- function(d) {
+    d$group=as.character("outliers")
+    for(i in (1:length(bp$Limit))) {
+        d[d$Size < bp[i,]$Limit & d$Size >= bp[i,]$LimitInf,]$group = bp[i,]$Name
+    }
+    d
+  }
+
+  compute_lm <- function(bp, d, zone,remove_sync=FALSE,remove_detached=FALSE) {
+    if(remove_sync) {
+       group_list = bp[bp$Limit<=detached_threshold,]$Name
+    } else {
+       group_list = bp$Name
+    }
+    if(remove_detached) {
+       group_list = bp[bp$Limit<=detached_threshold,]$Name
+    }
+    mylm <- ddply(d[d$group %in% (group_list),],
+                   c("group"), function(x) {
+                model <- lm(Duration ~ Size, data = x)
+                coef(model)
+                })
+    intercept_label = paste0(zone,"Intercept")
+    size_label = paste0(zone,"Size")
+    bp[,intercept_label] = 0
+    bp[,size_label] = 0
+
+    for(i in (mylm$group)) {
+       bp[bp$Name == i,intercept_label] = mylm[mylm$group == i,"(Intercept)"]
+       bp[bp$Name == i,size_label] = mylm[mylm$group == i,"Size"]
+    }
+    bp
+  }
+
+  display_lm <- function(d,remove_sync=FALSE,remove_detached=FALSE) {
+    if(remove_sync) {
+       group_list = bp[bp$Limit<=detached_threshold,]$Name
+    } else {
+       group_list = bp$Name
+    }
+    if(remove_detached) {
+       group_list = bp[bp$Limit<detached_threshold,]$Name
+    }
+    for(i in (1:length(group_list))) {
+       print(paste0("----- ",bp[i,]$Name,"-----"))
+       lim <- bp[i,]$Limit
+       print(summary(lm(Duration ~ Size, data = d[d$group==bp[bp$Limit==lim,]$Name,])))
+    }
+  }
+
+
+#Plotting functions
+
+  comm_function <- function(x,zone) {
+        bp[x>=bp$LimitInf & x<bp$Limit,paste0(zone,"Intercept")] +
+    x * bp[x>=bp$LimitInf & x<bp$Limit,paste0(zone,"Size")]
+  }
+
+
+  fancy_plot <- function(d,zone, title) {
+    d$values_test <- sapply(d$Size,function(x) {comm_function(x,zone)})
+
+    pl <- ggplot(data=d, aes(x=Size,y=Duration,color=group))
+    pl <- pl + geom_vline(xintercept=bp$Limit, colour="gray", linetype = "longdash")  +  annotate("text", x=bp$Limit, y=seq(.1*max(d$Duration),2*max(d$Duration),length.out=length(bp$Limit)), label=bp$Name)
+    pl <- pl + geom_point(alpha=.3)
+    pl <- pl + geom_line(aes(x=Size,y=values_test), colour="black")
+    pl <- pl + scale_x_log10(limits=c(1, max(d$Size))) + scale_y_log10()
+    pl + ylab(paste0(title, " duration (seconds)")) + xlab("Message size (bytes)") + theme_bw() + scale_alpha(guide = "none")
+
+    ggsave(filename=paste("/tmp/", prefix,"_",title, ".png", sep=""),plot=last_plot())
+    print(last_plot())
+  }
+
+
+```
+
+MPI_Send timing
+---------------
+
+Timings for this experiment are taken from a ping-pong experiment, used to determine os.
+
+We determine the piecewiese regression based on information taken from the regression file pointed in the XML configuration file
+
+```{r}
+
+print(bp)
+
+df_send <- classify_messages(df_send)
+bp <- compute_lm(bp,df_send,"Os",remove_sync=TRUE)
+```
+Display the regression factors to help tuning.
+```{r}
+display_lm(df_send,remove_sync=TRUE)
+```
+Visual representation of the computed data, to visualize correctness of the computed value.
+
+The black line representing the regression should be very close to the values, and should drop to 0 when communications use the rendez-vous algorithm (Large messages, with a size > eager_threshold).
+
+If they are not, tune the breakpoints in order to match more closely to your implementation. Thresholds for eager and detached messages depend on the library and the hardware used. Consult the documentation of your library on how to display this information if you can't visually determine it (For Ethernet network we saw values of 65536, while IB networks had values of 12288 or 17408 depending on the implementation)
+
+```{r}
+fancy_plot(df_send[df_send$group!="outliers",],"Os", "MPI_Send")
+```
+MPI_Isend timing
+---------------
+
+As they may differ from Send times, check this and call it ois, to inject proper timings later.
+
+```{r}
+
+  df_isend <- classify_messages(df_isend)
+  # We want to inject timings in all MPI_Isend, even the large ones. Hence remove_sync=F
+  bp <- compute_lm(bp,df_isend,"Ois",remove_sync=F)
+```
+Display the regression factors to help tuning
+```{r}
+  display_lm(df_isend,remove_sync=T)
+```
+Visual representation of the computed data, to visualize correctness of the computed value
+```{r}
+  fancy_plot(df_isend[df_isend$group!="outliers",],"Ois", "MPI_Isend")
+
+```
+
+MPI_Recv timing
+---------------
+
+Timings are used to determine or. This experiment waits for a potentially eager message to arrive before launching the recv for small message size, eliminating waiting times as much as possible.
+
+```{r}
+
+  df_recv <- classify_messages(df_recv)
+  bp <- compute_lm(bp,df_recv,"Or",remove_detached=TRUE)
+```
+Display the regression factors to help tuning
+```{r}
+  display_lm(df_recv,remove_detached=TRUE)
+```
+Visual representation of the computed data, to visualize correctness of the computed value
+```{r}
+  fancy_plot(df_recv[df_recv$group!="outliers",],"Or", "MPI_Recv")
+```
+
+Pingpong timing
+---------------
+
+pingpong = 2or+2transfer for small messages that are sent
+  asynchronously.  For large sizes, communications are synchronous,
+  hence we have pingpong = 2transfer.
+
+```{r}
+
+  df_pingpong <- classify_messages(df_pingpong)
+  bp <- compute_lm(bp,df_pingpong,"PingPong")
+  display_lm(df_pingpong)
+  fancy_plot(df_pingpong[df_pingpong$group!="outliers",],"PingPong","PingPong")
+
+
+  bp$DelayIntercept <- (bp$PingPongIntercept-bp$OrIntercept)/2
+  bp$DelaySize <- (bp$PingPongSize-bp$OrSize)/2
+
+  df_pingpong$values_test2 <- sapply(df_pingpong$Size,
+      function(x) {comm_function(x,"Delay")})
+
+  df_pingpong$Duration2 = (df_pingpong$Duration -
+     sapply(df_pingpong$Size,function(x) {comm_function(x,"Or")}))/2
+
+  pl <- ggplot(data=df_pingpong, aes(x=Size,y=Duration2,color=group))+geom_point(alpha=.2)
+  pl + geom_line(aes(x=Size,y=values_test2), colour="black") +scale_x_log10()+scale_y_log10()
+
+  ```
+
+Print results in Simgrid's xml format
+
+  ```{r}
+
+    desc=data.frame()
+  desc=rbind(desc, ddply(bp,c("Name"), summarize, Name="smpi/os",Limit=Limit, desc=paste0(LimitInf,":",OsIntercept,":",OsSize)))
+  desc=rbind(desc, ddply(bp,c("Name"), summarize, Name="smpi/or",Limit=Limit, desc=paste0(LimitInf,":",OrIntercept,":",OrSize)))
+desc=rbind(desc, ddply(bp,c("Name"), summarize, Name="smpi/ois",Limit=Limit, desc=paste0(LimitInf,":",OisIntercept,":",OisSize)))
+  desc=rbind(desc, ddply(bp,c("Name"), summarize, Name="smpi/bw_factor",Limit=Limit, desc=paste0(LimitInf,":",1/(DelaySize*expected_bandwidth))))
+  desc=rbind(desc, ddply(bp,c("Name"), summarize, Name="smpi/lat_factor",Limit=Limit, desc=paste0(LimitInf,":",DelayIntercept/expected_latency)))
+
+  desc <- desc[with(desc, order(Name,Limit)),]
+  desc <- ddply(desc,c("Name"),summarize,label=paste(desc,collapse = ';'))
+
+  as <- xmlNode("prop", attrs = c(id="smpi/async_small_thres", value=eager_threshold))
+  de <- xmlNode("prop", attrs = c(id="smpi/send_is_detached_thres", value= detached_threshold))
+  bw <- xmlNode("prop", attrs = c(id="smpi/bw_factor", value=desc[desc$Name=="smpi/bw_factor",]$label))
+  lat <- xmlNode("prop", attrs = c(id="smpi/lat_factor", value=desc[desc$Name=="smpi/lat_factor",]$label))
+  os <- xmlNode("prop", attrs = c(id="smpi/os", value=desc[desc$Name=="smpi/os",]$label))
+  or <- xmlNode("prop", attrs = c(id="smpi/or", value=desc[desc$Name=="smpi/or",]$label))
+  ois <- xmlNode("prop", attrs = c(id="smpi/ois", value=desc[desc$Name=="smpi/ois",]$label))
+
+
+a <- xmlNode("config", attrs = c(id="General"), os, ois, or, bw, lat, as, de)
+
+
+```
+MPI_Wtime timing
+---------------
+
+We made a run with 10 millions calls to MPI\_Wtime and we want to know the time of one call
+
+```{r}
+
+
+wtime=(df_wtime$Duration)/10000000
+```
+Time for one MPI_Wtime call
+```{r}
+print(wtime)
+
+
+a <- addChildren(a, xmlNode("prop", attrs= c(id="smpi/wtime", value=paste0(wtime))))
+
+
+
+```
+MPI_Iprobe timing
+----------------
+We made 1000 runs of pingpong with pollling on MPI\_Iprobe. Compute the Duration of such a call, and check whether its time is related to the size of the message
+
+```{r}
+
+qplot(data=df_iprobe,y=Duration)
+
+iprobe=mean(df_iprobe$Duration, trim=0.1)
+```
+Time for one MPI_Iprobe call
+```{r}
+print(iprobe)
+
+a <- addChildren(a, xmlNode("prop", attrs= c(id="smpi/iprobe", value=paste0(iprobe))))
+
+```
+
+MPI_Test timing
+---------------
+
+```{r}
+
+qplot(data=df_test,y=Duration)
+
+test=mean(df_test$Duration, trim=0.1)
+```
+Time for one MPI_Test call
+```{r}
+print(test)
+
+a <- addChildren(a, xmlNode("prop", attrs= c(id="smpi/test", value=paste0(test))))
+```
+
+
+Result of calibration.
+---------------
+
+The following snippet of XML has to be included at the beginning of your platformfile. Please report to the SimGrid mailing list any bug with the calibration or the generated platform file.
+
+```{r}
+
+print(a)
+
+print(paste0("Results written in ", paste0(prefix,".xml")))
+
+saveXML(a, file=paste0(prefix, paste0("_output", ".xml")))
+
+
+```
+
