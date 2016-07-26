@@ -1,7 +1,7 @@
 #+TITLE: Obtaining Platform Description for SimGrid
 #+AUTHOR: Augustin Degomme, Christian Heinrich, Luka Stanisic, ...
 #+LANGUAGE:  en
-#+STARTUP: inlineimages
+#+STARTUP: inlineimages indent hidestars
 #+OPTIONS: H:3 num:t toc:t \n:nil @:t ::t |:t ^:nil -:t f:t *:t <:t
 #+OPTIONS: TeX:t LaTeX:t skip:nil d:nil todo:nil pri:nil tags:not-in-toc
 #+EXPORT_SELECT_TAGS: export
