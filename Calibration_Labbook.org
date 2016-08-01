@@ -8,7 +8,7 @@
 #+EXPORT_EXCLUDE_TAGS: noexport
 #+TAGS: noexport(n)
 #+TAGS: LUKA(L) AUGUSTIN(A) CHRISTIAN(C)
-#+TAGS: @miriel(m) @stampede(s) @griffon(g)
+#+TAGS: @miriel(m) @stampede(s) @griffon(g) @sirocco(i)
 
 * Documentation
 ** README
@@ -591,3 +591,104 @@ uniq $OAR_NODE_FILE | /bin/grep "taurus" >| taurus-hostnames
 mpicc alltoall_loadtest.c -o saturation -O3
 mpirun -np 12 --mca plm_rsh_agent 'ssh' --mca pml ob1 --mca btl tcp,self -machinefile ./taurus-hostnames saturation
 #+end_src
+** Sirocco machine in Bordeaux                               :LUKA:@sirocco:
+
+This is a small GPU cluster, which is a part of plafrim, situated in
+Bordeaux. There are only 5 nodes, but each one has 2 Dodeca-core
+Haswell Intel® Xeon® E5-2680 CPUs and 4 Nvidia K40 GPUs.
+
+More precise architecture description is available [[https://plafrim.bordeaux.inria.fr/doku.php?id=plateforme:configurations:sirocco][here]].
+
+This is a machine we want StarPU-MPI + SimGrid to work on.
+
+Just like for the miriel, I was not sure what default latency to put,
+so it was 10 microseconds.
+
+Also how to know whether Ethernet or IB is used? And what will StarPU
+use and how? Which MPI implementation shall I use? Need to discuss
+these things with Samuel.
+
+For now doing a basic calibration and saturation, just to be sure we have some kind of platform description. Later it will be improved.
+
+*** Calibration
+
+Compiling calibration scripts.
+
+#+begin_src sh :results output
+module load mpi/mpich/ge/gcc/64/3.1
+
+cd src/calibration
+
+mpicc -o calibrate calibrate.c experiments.c -I/usr/include/libxml2 -lxml2
+
+cd -
+#+end_src
+
+Creating and preparing new platform folder. Adapting testplatform.xml
+for a new folder path and bandwidth+latency.
+
+#+begin_src sh :results output
+mkdir data/sirocco_01_08_2016
+mkdir data/sirocco_01_08_2016/calibration
+
+cp template/testplatform* data/sirocco_01_08_2016/calibration
+#+end_src
+
+
+Allocating and running calibration scripts (slightly different for sirocco than for miriel).
+
+#+begin_src sh :results output
+salloc -N2 --exclusive -t 00:30:00 -p court_sirocco -x sirocco06
+
+sbatch data/sirocco_01_08_2016/sbatch_plafrim_calibration
+#+end_src
+
+   Here is an example of the sbatch script for running sirocco
+   calibration.
+
+#+begin_src sh :results output
+#!/usr/bin/env bash
+#Job name
+#SBATCH -J calibration
+# Asking for N nodes
+#SBATCH -N 2
+# Output results message
+#SBATCH -o %j.out
+# Output error message
+#SBATCH -e %j.err
+
+# #SBATCH -p longq
+# Asking for sirocco nodes
+#SBATCH -p court_sirocco -x sirocco06
+
+module purge
+module load slurm/14.03.0
+module load mpich/ge/gcc/64/3.1.4
+
+FOLDER="/home-ext/stanisic/platform-calibration"
+DATAFOLDER="data/sirocco_01_08_2016/calibration"
+
+mpirun -np 2 $FOLDER/src/calibration/calibrate -f $FOLDER/$DATAFOLDER/testplatform.xml -s $FOLDER/src/calibration/zoo_sizes
+#+end_src
+
+
+Data is saved in data/sirocco_01_08_2016/calibration and pushed to the
+remote repository.
+
+#+begin_src shell :results output
+git add data/sirocco_01_08_2016
+git commit -m "Adding calibration data on sirocco"
+git push
+#+end_src
+
+After executing calibration, on plafrim, delete unnecessary output
+files and finish the reservation. On plafrim for 2 sirocco nodes,
+default calibration takes around 1-2 minutes.
+
+#+begin_src sh :results output
+rm *.err *.out
+scancel -u stanisic
+#+end_src
+
+ Now on a local machine pull new data and run the analysis (all R
+ packages and similar have already been installed before).
