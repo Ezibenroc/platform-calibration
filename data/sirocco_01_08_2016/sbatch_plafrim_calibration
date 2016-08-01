@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+#Job name
+#SBATCH -J calibration
+# Asking for N nodes
+#SBATCH -N 2
+# Output results message
+#SBATCH -o %j.out
+# Output error message
+#SBATCH -e %j.err
+
+# #SBATCH -p longq
+# Asking for sirocco nodes
+#SBATCH -p court_sirocco -x sirocco06
+
+module purge
+module load slurm/14.03.0
+module load mpich/ge/gcc/64/3.1.4
+
+FOLDER="/home-ext/stanisic/platform-calibration"
+DATAFOLDER="data/sirocco_01_08_2016/calibration"
+
+mpirun -np 2 $FOLDER/src/calibration/calibrate -f $FOLDER/$DATAFOLDER/testplatform.xml -s $FOLDER/src/calibration/zoo_sizes
