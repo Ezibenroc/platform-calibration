@@ -523,7 +523,6 @@ make
     values, to better test limits of the network.
 
 ** Taurus machine in Lyon                                        :CHRISTIAN:
-
 *** Reservation
 
 The taurus machine shares a single switch with both orion and hercule
@@ -531,7 +530,7 @@ clusters. We’ve observed that experiments are not reliable if these
 two clusters are not reserved as well, since the switch does not
 isolate all clusters from each other. 
 
-Hence, the code that I used to reserve the clusters:
+The command that I used to reserve the clusters:
 
 #+begin_src sh :results output :exports both
 oarsub -t deploy -l "{cluster in ('taurus', 'orion', 'hercule')}/nodes=ALL,walltime=00:55" -r "$(date '+%Y-%m-%d %H:%M:%S')"
