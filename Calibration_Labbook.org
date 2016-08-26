@@ -735,3 +735,206 @@ following.
 *** Saturation
 
 Probably no need to do spend time on this at this point, as first the calibration needs to be improved.
+** Advanced sirocco machine in Bordeaux                      :LUKA:@sirocco:
+
+This time we have a bit more information on the machine (latency 1us,
+real bandwidth 4GB/s), so we want to redo properly another calibration
+and saturation. Also we want to use OpenMPI not MPICH this time.
+
+Also we want to test the transfer time for a specific 8MB data
+transfer, as this is the only one used when doing tile Cholesky
+factorization from Chameleon on sirocco nodes, since the tile size
+is 1440.
+
+*** Calibration
+
+Compiling calibration scripts on sirocco machine.
+
+#+begin_src sh :results output
+module load mpi/openmpi
+
+cd src/calibration
+
+mpicc -o calibrate calibrate.c experiments.c -I/usr/include/libxml2 -lxml2
+
+cd -
+#+end_src
+
+Creating and preparing new platform folder. Adapting testplatform.xml
+for a new folder path and bandwidth+latency.
+
+#+begin_src sh :results output
+mkdir data/sirocco_26_08_2016
+mkdir data/sirocco_26_08_2016/calibration
+
+cp template/testplatform* data/sirocco_26_08_2016/calibration
+cp sbatch_plafrim_calibration  data/sirocco_26_08_2016
+#+end_src
+
+
+Allocating and running calibration scripts (slightly different for
+sirocco than for miriel).  Need to adapt the
+data/sirocco_26_08_2016/calibration/testplatform.xml file for the
+output directory, platform name, expected latency and expected bandwidth (not sure if
+it is in GB/s or in Gb/s).
+
+#+begin_src sh :results output
+sbatch data/sirocco_26_08_2016/sbatch_plafrim_calibration
+#+end_src
+
+Data is saved in data/sirocco_26_08_2016/calibration and pushed to the
+remote repository.
+
+#+begin_src shell :results output
+git add data/sirocco_26_08_2016
+git commit -m "Adding calibration data on sirocco"
+git push
+#+end_src
+
+After executing calibration, on plafrim, delete unnecessary output
+files and finish the reservation. On plafrim for 2 sirocco nodes,
+default calibration takes around 1-2 minutes.
+
+#+begin_src sh :results output
+rm *.err *.out
+scancel -u stanisic
+#+end_src
+
+ Now on a local machine pull new data and run the analysis (all R
+ packages and similar have already been installed before).
+
+#+begin_src sh :results output
+cd data/sirocco_26_08_2016/calibration
+
+cp ../../../src/calibration/Makefile ../../../src/calibration/Analysis.Rmd . 
+
+make testplatform.html
+firefox testplatform.html
+#+end_src
+
+The results are quite stable and here is the output.
+
+#+BEGIN_SRC 
+## <config id="General">
+##  <prop id="smpi/os" value="0:2.26208782197973e-07:8.3096367905883e-11;1420:9.08119677184139e-08:1.5705037478521e-10;7000:2.35718813151922e-07:1.25874360533578e-10;174080:-1.25337841118449e-05:1.94161826581092e-10;260000:0:0"/>
+##  <prop id="smpi/ois" value="0:2.4225468335082e-07:8.78040749071613e-11;1420:2.13616351795046e-07:1.44607110369053e-10;7000:3.17303568995753e-07:1.22737206281853e-10;174080:1.4795323742668e-05:3.85796062588106e-11;260000:4.2676375347139e-07:2.76393692773138e-13"/>
+##  <prop id="smpi/or" value="0:8.00841235810377e-07:3.5577540908684e-10;1420:5.1045941579316e-07:4.49845689659618e-10;7000:1.55437952808834e-06:3.63232330966495e-10;174080:9.87962740697632e-06:3.20352025352883e-10;260000:0:0"/>
+##  <prop id="smpi/bw_factor" value="0:0.164159935554902;1420:0.529279816247861;7000:1.15239187605285;174080:1.2410545495175;260000:0.678376089946641"/>
+##  <prop id="smpi/lat_factor" value="0:1.44747969855069;1420:3.21984228299524;7000:6.14693915739059;174080:5.05233151986717;260000:15.6349316380971"/>
+##  <prop id="smpi/async_small_thres" value="65536"/>
+##  <prop id="smpi/send_is_detached_thres" value="320000"/>
+##  <prop id="smpi/wtime" value="4.411823e-08"/>
+##  <prop id="smpi/iprobe" value="2.01049751243781e-07"/>
+##  <prop id="smpi/test" value="6.82e-07"/>
+## </config>
+#+END_SRC
+
+*** Transfer of 1440 single precision tile (~8MB of data)
+
+On the plafrim create folder and prepare input (also adapt xml file
+and sbatch). Also do not forget to adapt minSize and maxSize values in
+the .xml file.
+
+#+begin_src shell :results output
+mkdir data/sirocco_26_08_2016/8MB_transfer
+cp template/testplatform* data/sirocco_26_08_2016/8MB_transfer
+cp sbatch_plafrim_calibration data/sirocco_26_08_2016/sbatch_plafrim_calibration2
+
+for i in {1..435}; do echo $((1440*1440*4)) >> src/calibration/8MB_size; done
+#+end_src
+
+Now launching the execution.
+
+#+begin_src sh :results output
+sbatch data/sirocco_26_08_2016/sbatch_plafrim_calibration
+#+end_src
+
+Data is saved in data/sirocco_26_08_2016/calibration and pushed to the
+remote repository.
+
+#+begin_src shell :results output
+git add data/sirocco_26_08_2016
+git commit -m "Adding calibration data on sirocco for 8MB transfer"
+git push
+#+end_src
+
+After executing calibration, on plafrim, delete unnecessary output
+files and finish the reservation. On plafrim for 2 sirocco nodes,
+default calibration takes around 1-2 minutes.
+
+#+begin_src sh :results output
+rm *.err *.out
+scancel -u stanisic
+#+end_src
+
+ Now on a local machine pull new data and run the analysis (all R
+ packages and similar have already been installed before). Also need
+ to adapt breakpoints to use this single value
+
+#+begin_src sh :results output
+cd data/sirocco_26_08_2016/8MB_transfer
+
+cp ../../../src/calibration/Makefile ../../../src/calibration/Analysis.Rmd . 
+
+make testplatform.html
+firefox testplatform.html
+#+end_src
+
+Standard analysis is not adapted for this kind of automatic analysis,
+so better to do it by hand.
+
+*** Analysis 8MB transfers
+Let's analyze duration of MPI_Send, MPI_Isend and MPI_Recv one by one.
+
+#+begin_src R :results output graphics :file :file (org-babel-temp-file "figure" ".png") :exports both :width 600 :height 400 :session org-R :dir .
+library(ggplot2)
+
+read_csv <- function(file) {
+  df<-read.csv(file,header=FALSE)
+  names(df)<-c("Operation", "Size", "Start", "Duration")
+
+  df
+}
+df<-rbind(read_csv("data/sirocco_26_08_2016/8MB_transfer/sirocco_Isend.csv"),
+          #read_csv("data/sirocco_26_08_2016/8MB_transfer/sirocco_Isend.csv"),
+          read_csv("data/sirocco_26_08_2016/8MB_transfer/sirocco_Recv.csv"))
+
+
+ggplot(df, aes(Duration))+geom_histogram()+xlab("Duration [s]")+facet_wrap(~Operation, ncol=1, scales="free")
+#+end_src
+
+#+RESULTS:
+[[file:/tmp/babel-3188UQA/figure3188MnL.png]]
+
+  OK these are not too long. Let's see for the whole transfer.
+
+#+begin_src R :results output graphics :file :file (org-babel-temp-file "figure" ".png") :exports both :width 600 :height 400 :session org-R :dir .
+library(ggplot2)
+
+read_csv <- function(file) {
+  df<-read.csv(file,header=FALSE)
+  names(df)<-c("Operation", "Size", "Start", "Duration")
+
+  df
+}
+df<-read_csv("data/sirocco_26_08_2016/8MB_transfer/sirocco_PingPong.csv")
+
+df_send<-df[df$Operation=="MPI_Send",]
+df_recvs<-df[df$Operation=="MPI_Recv",]
+
+
+df2 <- data.frame( Operation = "Transfer",
+                   Size = df_send$Size,
+                   Start = df_send$Start,
+                   Duration = df_recvs$Duration + df_send$Duration)
+
+df<-rbind(df,df2)
+
+ggplot(df, aes(Duration))+geom_histogram()+xlab("Duration [s]")+facet_wrap(~Operation, ncol=1)
+#+end_src
+
+#+RESULTS:
+[[file:/tmp/babel-3188UQA/figure3188m7X.png]]
+
+
+  Actually these are very stable!
