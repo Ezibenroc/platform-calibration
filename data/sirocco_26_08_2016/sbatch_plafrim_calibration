@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+#Job name
+#SBATCH -J calibration
+# Asking for N nodes
+#SBATCH -N 2
+# Output results message
+#SBATCH -o %j.out
+# Output error message
+#SBATCH -e %j.err
+
+# #SBATCH -p longq
+#SBATCH -p court_sirocco -x sirocco06
+# Additional important options for sirocco
+# #SBATCH -C Haswell --gres=gpu:4
+#SBATCH --exclusive
+
+module purge
+module load slurm/14.03.0
+#module load mpich/ge/gcc/64/3.1.4
+module load mpi/openmpi
+
+FOLDER="/home-ext/stanisic/platform-calibration"
+DATAFOLDER="data/sirocco_26_08_2016/calibration"
+
+#mpirun -np 2 $FOLDER/src/calibration/calibrate -f $FOLDER/$DATAFOLDER/testplatform.xml -s $FOLDER/src/calibration/zoo_sizes
+
+mpiexec -np 2 -pernode $FOLDER/src/calibration/calibrate -f $FOLDER/$DATAFOLDER/testplatform.xml -s $FOLDER/src/calibration/zoo_sizes
