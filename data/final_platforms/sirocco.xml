@@ -30,7 +30,7 @@
 <prop id="smpi/wtime" value="3.098699e-08"/>
 <prop id="smpi/iprobe" value="2.33927297668038e-07"/>
 <prop id="smpi/test" value="2.28018867924528e-07"/>
-## </config>
+</config>
 
 <AS  id="AS0"  routing="Full">	 
   <cluster id="acme"
