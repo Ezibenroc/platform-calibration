@@ -576,7 +576,7 @@ and executed it (after =taurus-hostnames= was created and/or updated):
 
 #+begin_src sh :results output :exports both
 for i in {1..9}; do
-  mpirun -np 2 --mca pml ob1 --mca btl tcp,self -machinefile taurus-hostnames ./calibrate -f taurus-2016-06-09--$i/taurus.xml
+  mpirun -np 2 --mca pml ob1 --mca btl tcp,self -machinefile ./machinefile ./calibrate -f taurus-2016-06-09--$i/taurus.xml
   sleep 20
 done
 #+end_src
