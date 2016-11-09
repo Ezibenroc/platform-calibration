@@ -8,7 +8,7 @@
 #+EXPORT_EXCLUDE_TAGS: noexport
 #+TAGS: noexport(n)
 #+TAGS: LUKA(L) AUGUSTIN(A) CHRISTIAN(C)
-#+TAGS: @miriel(m) @stampede(s) @griffon(g) @sirocco(i)
+#+TAGS: @miriel(m) @stampede(s) @griffon(g) @sirocco(i) @taurus(t)
 
 * Documentation
 ** README
