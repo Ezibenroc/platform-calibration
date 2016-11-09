@@ -522,7 +522,7 @@ make
     Probably need to redo this saturation tests with different input
     values, to better test limits of the network.
 
-** Taurus machine in Lyon                                        :CHRISTIAN:
+** Taurus machine in Lyon                                :CHRISTIAN:@taurus:
 *** Reservation
 
 The taurus machine shares a single switch with both orion and hercule
