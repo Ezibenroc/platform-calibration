@@ -5,7 +5,7 @@
  <prop id="smpi/or" value="0:1.3635950877903e-06:1.08008992233296e-10;4120:0:0;17408:0:0"/>
  <prop id="smpi/bw-factor" value="0:1.0212271015512;4120:1.00592739101783;17408:1.32354721253027"/>
  <prop id="smpi/lat-factor" value="0:0.000453157054255973;4120:0.149947156921692;17408:0.260476437970144"/>
- <prop id="smpi/async_small_thres" value="17408"/>
+ <prop id="smpi/async-small-thres" value="17408"/>
  <prop id="smpi/send_is_detached_thres" value="17408"/>
  <prop id="smpi/wtime" value="3.54637e-08"/>
  <prop id="smpi/iprobe" value="4.44178571428571e-07"/>

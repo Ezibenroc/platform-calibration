@@ -305,7 +305,7 @@ desc=rbind(desc, ddply(bp,c("Name"), summarize, Name="smpi/ois",Limit=Limit, des
   desc <- desc[with(desc, order(Name,Limit)),]
   desc <- ddply(desc,c("Name"),summarize,label=paste(desc,collapse = ';'))
 
-  as <- xmlNode("prop", attrs = c(id="smpi/async_small_thres", value=eager_threshold))
+  as <- xmlNode("prop", attrs = c(id="smpi/async-small-thres", value=eager_threshold))
   de <- xmlNode("prop", attrs = c(id="smpi/send_is_detached_thres", value= detached_threshold))
   bw <- xmlNode("prop", attrs = c(id="smpi/bw-factor", value=desc[desc$Name=="smpi/bw-factor",]$label))
   lat <- xmlNode("prop", attrs = c(id="smpi/lat-factor", value=desc[desc$Name=="smpi/lat-factor",]$label))

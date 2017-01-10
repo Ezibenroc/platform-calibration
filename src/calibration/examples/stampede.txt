@@ -312,7 +312,7 @@ Print results in Simgrid's xml format
   ```
   
   ```
-  ## Error in xmlNode("prop", attrs = c(id = "smpi/async_small_thres", value = eager_threshold)): object 'eager_threshold' not found
+  ## Error in xmlNode("prop", attrs = c(id = "smpi/async-small-thres", value = eager_threshold)): object 'eager_threshold' not found
   ```
   
   ```
