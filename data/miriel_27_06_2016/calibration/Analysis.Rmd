@@ -298,7 +298,7 @@ Print results in Simgrid's xml format
   desc=rbind(desc, ddply(bp,c("Name"), summarize, Name="smpi/os",Limit=Limit, desc=paste0(LimitInf,":",OsIntercept,":",OsSize)))
   desc=rbind(desc, ddply(bp,c("Name"), summarize, Name="smpi/or",Limit=Limit, desc=paste0(LimitInf,":",OrIntercept,":",OrSize)))
 desc=rbind(desc, ddply(bp,c("Name"), summarize, Name="smpi/ois",Limit=Limit, desc=paste0(LimitInf,":",OisIntercept,":",OisSize)))
-  desc=rbind(desc, ddply(bp,c("Name"), summarize, Name="smpi/bw_factor",Limit=Limit, desc=paste0(LimitInf,":",1/(DelaySize*expected_bandwidth))))
+  desc=rbind(desc, ddply(bp,c("Name"), summarize, Name="smpi/bw-factor",Limit=Limit, desc=paste0(LimitInf,":",1/(DelaySize*expected_bandwidth))))
   desc=rbind(desc, ddply(bp,c("Name"), summarize, Name="smpi/lat_factor",Limit=Limit, desc=paste0(LimitInf,":",DelayIntercept/expected_latency)))
 
   desc <- desc[with(desc, order(Name,Limit)),]
@@ -306,7 +306,7 @@ desc=rbind(desc, ddply(bp,c("Name"), summarize, Name="smpi/ois",Limit=Limit, des
 
   as <- xmlNode("prop", attrs = c(id="smpi/async_small_thres", value=eager_threshold))
   de <- xmlNode("prop", attrs = c(id="smpi/send_is_detached_thres", value= detached_threshold))
-  bw <- xmlNode("prop", attrs = c(id="smpi/bw_factor", value=desc[desc$Name=="smpi/bw_factor",]$label))
+  bw <- xmlNode("prop", attrs = c(id="smpi/bw-factor", value=desc[desc$Name=="smpi/bw-factor",]$label))
   lat <- xmlNode("prop", attrs = c(id="smpi/lat_factor", value=desc[desc$Name=="smpi/lat_factor",]$label))
   os <- xmlNode("prop", attrs = c(id="smpi/os", value=desc[desc$Name=="smpi/os",]$label))
   or <- xmlNode("prop", attrs = c(id="smpi/or", value=desc[desc$Name=="smpi/or",]$label))
