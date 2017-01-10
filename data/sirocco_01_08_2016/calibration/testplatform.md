@@ -522,7 +522,7 @@ The following snippet of XML has to be included at the beginning of your platfor
 ##  <prop id="smpi/bw-factor" value="0:0.124230489840844;1420:0.311345781078732;65536:0.344336843153613;131072:0.290935589385778;4e+05:0.291581596908999"/>
 ##  <prop id="smpi/lat-factor" value="0:0.737322772282333;1420:1.16891951785859;65536:1.55145779857452;131072:4.44599650869728;4e+05:4.47543800174862"/>
 ##  <prop id="smpi/async-small-thres" value="65536"/>
-##  <prop id="smpi/send_is_detached_thres" value="320000"/>
+##  <prop id="smpi/send-is-detached-thres" value="320000"/>
 ##  <prop id="smpi/wtime" value="3.098699e-08"/>
 ##  <prop id="smpi/iprobe" value="2.33927297668038e-07"/>
 ##  <prop id="smpi/test" value="2.28018867924528e-07"/>

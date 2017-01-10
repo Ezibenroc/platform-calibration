@@ -6,5 +6,5 @@
  <prop id="smpi/bw-factor"/>
  <prop id="smpi/lat-factor"/>
  <prop id="smpi/async-small-thres" value="65536"/>
- <prop id="smpi/send_is_detached_thres" value="260000"/>
+ <prop id="smpi/send-is-detached-thres" value="260000"/>
 </config>

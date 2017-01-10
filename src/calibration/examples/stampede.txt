@@ -316,7 +316,7 @@ Print results in Simgrid's xml format
   ```
   
   ```
-  ## Error in xmlNode("prop", attrs = c(id = "smpi/send_is_detached_thres", : object 'detached_threshold' not found
+  ## Error in xmlNode("prop", attrs = c(id = "smpi/send-is-detached-thres", : object 'detached_threshold' not found
   ```
   
   ```
