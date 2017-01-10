@@ -295,12 +295,22 @@ Print results in Simgrid's xml format
 
   ```{r}
 
+  # Check that values are in (0, 1]
+  test_unit_interval <- function(value) {
+    ifelse(value > 1, 1, value)
+  }
+
+  # Check that values are in [1, inf)
+  test_lat_interval <- function(value) {
+    ifelse(value < 1, 1, value)
+  }
+
     desc=data.frame()
   desc=rbind(desc, ddply(bp,c("Name"), summarize, Name="smpi/os",Limit=Limit, desc=paste0(LimitInf,":",OsIntercept,":",OsSize)))
   desc=rbind(desc, ddply(bp,c("Name"), summarize, Name="smpi/or",Limit=Limit, desc=paste0(LimitInf,":",OrIntercept,":",OrSize)))
 desc=rbind(desc, ddply(bp,c("Name"), summarize, Name="smpi/ois",Limit=Limit, desc=paste0(LimitInf,":",OisIntercept,":",OisSize)))
-  desc=rbind(desc, ddply(bp,c("Name"), summarize, Name="smpi/bw-factor",Limit=Limit, desc=paste0(LimitInf,":",1/(DelaySize*expected_bandwidth))))
-  desc=rbind(desc, ddply(bp,c("Name"), summarize, Name="smpi/lat-factor",Limit=Limit, desc=paste0(LimitInf,":",DelayIntercept/expected_latency)))
+  desc=rbind(desc, ddply(bp,c("Name"), summarize, Name="smpi/bw-factor",Limit=Limit, desc=paste0(LimitInf,":",test_unit_interval(1/(DelaySize*expected_bandwidth)))))
+  desc=rbind(desc, ddply(bp,c("Name"), summarize, Name="smpi/lat-factor",Limit=Limit, desc=paste0(LimitInf,":",test_lat_interval(DelayIntercept/expected_latency))))
 
   desc <- desc[with(desc, order(Name,Limit)),]
   desc <- ddply(desc,c("Name"),summarize,label=paste(desc,collapse = ';'))
