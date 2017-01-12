@@ -17,5 +17,6 @@ void my_sleep(unsigned long long length);
 void print_in_file(const char* func, int count, unsigned long long start_time, unsigned long long total_time);
 
 MPI_Comm get_comm();
+int get_rank();
 
 #endif // __CALIBRATE_H_
