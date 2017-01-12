@@ -10,6 +10,7 @@
 #define HAVE_GETTIMEOFDAY 1
 #endif
 #include "mpi.h"
+#include "experiments.h"
 void* get_send_buffer();
 void* get_recv_buffer();
 unsigned long long get_time();
