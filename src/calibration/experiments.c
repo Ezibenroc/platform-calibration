@@ -1,10 +1,5 @@
-#include <stdlib.h>
-#include <math.h>
-#include <assert.h>
-#include <stdlib.h>
-#include <stdio.h> 
-#include <time.h>
-#include "calibrate.h"
+#include "experiments.h"
+
 MPI_Request *req_array;
 #define tag 1
 #define datatype MPI_CHAR
