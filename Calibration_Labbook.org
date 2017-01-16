@@ -554,7 +554,7 @@ kadeploy3 -a /home/cheinrich/debian_stretch.env -f $OAR_FILE_NODES -k
 
 I already had a taurus.xml set up and since I wanted to run the
 calibration several times, I just copied it to all the
-directories. The actual taurus.xml can now be found at [[file:./data/taurus/calibration/taurus.xml]].
+directories. The actual taurus.xml can now be found at [[file:./data/taurus_26_07_2016/calibration/taurus.xml]].
 
 #+begin_src sh :results output :exports both
 cd src/smpi-calibration
