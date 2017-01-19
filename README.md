@@ -67,11 +67,43 @@ measurements (_MPI_Isend_).
 
 #### The Message Sizes and Variability Check
 
-We use a 10 runs of each function, each with n different sizes.  The
-sizes are taken from the file zoo_sizes.  This set was generated in
-order to provide a comprehensive set of sizes, with a good repartition
-for all magnitudes.  We can set the maximum limit for the sizes with
--s (as sizes go up to 1GB in zoo).
+Addressing variability requires that multiple runs for each
+operation. The number of replications can be set through the parameter
+`--nb_runs`. Message sizes are taken in the order established in an
+input file whose name is passed as parameter, using the `--sizeFile`
+parameter. The `zoo_sizes` file that is already in this repository
+provides a comprehensive set of sizes, with a good repartition for all
+magnitudes.  Regardless of the message sizes available in the input
+file, we can filter them by passing `--min_size` followed by the
+minimum size and `--max-size` for the maximum. Since sizes can go up
+to 1GB in the furnished size file, the analyst can create a cut to
+reduce experimental time.
+
+#### CLI Help and Parameter Description
+
+Call the `calibrate` binary passing the `--help` option. You'll get
+something like this:
+
+```
+$ ./calibrate --help
+Usage: calibrate [OPTION...]
+Runs MPI point to point benchmarks to compute values used for SMPI calibration
+
+  -d, --dir_name=dir_name    Name/path of the directory to save files into. No
+                             trailing slashes.
+  -f, --filename=FILENAME    XML filename
+  -m, --min_size=MIN SIZE    Minimum size to process
+  -M, --max_size=MAX SIZE    Maximum size to process
+  -n, --nb_runs=NB RUNS      number of times you want to execute the run
+  -p, --prefix=PREFIX        prefix of the csv files
+  -s, --sizeFile=SIZEFILE    filename of the size list
+  -?, --help                 Give this help list
+      --usage                Give a short usage message
+
+Mandatory or optional arguments to long options are also mandatory or optional
+for any corresponding short options.
+```
+
 
 Saturation
 ----------
