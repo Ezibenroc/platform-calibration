@@ -10,9 +10,9 @@ The `calibrate` binary is an MPI application that introduces a bunch
 of MPI experiments. The goal is to profile the amount of time taken to
 execute some MPI operations in a real environment. The timings for
 such operations are obtained using the most precise clock available in
-the local node where the binary is executed. All measurements, along
+the local node where the binary is executed. Measurements, along
 with their corresponding parameters such as message size, are dumped
-to the standard output. In a second stage, after the experiment has
+to multiple CSV files, one per operation. In a second stage, after the experiment has
 finished, an R script takes as input those measurements and a break
 points textual file informing the message sizes where the MPI protocol
 changes. As output, the R script generates the values that need to be
