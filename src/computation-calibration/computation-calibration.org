@@ -1,0 +1,292 @@
+
+* Set some R options...
+#+begin_src R :results output :session *R* :exports both
+options(width=200)
+library(plyr)
+library(ggplot2)
+#+end_src
+
+#+RESULTS:
+
+** Remove unneccessary information from the traces
+
+#+begin_src bash :results output :exports both :session foo
+cat /tmp/SMPI_LU_CLASS=C_PROCS=12_FREQ=2300_CLUSTER=TAURUS_trace_dump | grep State, | grep MPI_ | \
+  sed -e 's/()//' -e 's/MPI_STATE, //ig'  -e 's/State, //ig' -e 's/rank-//' -e 's/PMPI_/MPI_/' | grep MPI_  | tr 'A-Z' 'a-z' > /tmp/smpi_12.csv
+
+cat /tmp/MPI_LU_C_NODES=1_CORES=12_NPROCS=12_FREQUENCY=2300_CLUSTER=taurus.csv | grep State, | \
+    sed -e 's/action_/MPI_/' -e 's/rank//'  -e 's/ MPI_STATE,//' -e 's/STATE, //ig'  -e 's/()//' | \
+    sed -E 's/_([[:lower:]])/_\U\1/' | grep MPI_ | tr 'A-Z' 'a-z' > /tmp/mpi_12.csv
+#+end_src
+
+#+RESULTS:
+
+* Load data in R
+
+#+begin_src R :results output :session *R* :exports both
+df_mpi12         = read.csv("/tmp/mpi_12.csv", header=F, strip.white=T);
+names(df_mpi12)  = c("rank", "start", "end", "duration", "level", "state");
+df_smpi12        = read.csv("/tmp/smpi_12.csv", header=F, strip.white=T);
+names(df_smpi12) = c("rank", "start", "end", "duration", "level", "state", "Filename", "Linenumber");
+df_mpi12$origin  = as.factor("MPI 12 cores")
+df_smpi12$origin = as.factor("SMPI 12 cores")
+#+end_src
+
+#+RESULTS:
+
+#+begin_src R :results output :session *R* :exports both
+str(df_mpi12)
+str(df_smpi12)
+#+end_src
+
+#+RESULTS:
+#+begin_example
+'data.frame':	2757182 obs. of  7 variables:
+ $ rank    : int  9 9 9 9 9 9 9 9 9 9 ...
+ $ start   : num  0.0236 0.0906 0.0907 0.0914 0.0918 ...
+ $ end     : num  0.0812 0.0906 0.0907 0.0918 0.0918 ...
+ $ duration: num  0.057596 0.000007 0.000001 0.000346 0.00002 ...
+ $ level   : num  4 4 4 5 5 5 5 5 5 5 ...
+ $ state   : Factor w/ 11 levels "mpi_allreduce",..: 7 4 5 3 3 3 3 3 3 3 ...
+ $ origin  : Factor w/ 1 level "MPI 12 cores": 1 1 1 1 1 1 1 1 1 1 ...
+'data.frame':	2757156 obs. of  9 variables:
+ $ rank      : int  8 8 8 8 8 8 8 8 8 8 ...
+ $ start     : num  0 0.101 0.101 0.101 0.101 ...
+ $ end       : num  0 0.101 0.101 0.101 0.101 ...
+ $ duration  : num  0.0 4.3e-05 1.5e-05 1.5e-05 1.5e-05 1.6e-05 1.6e-05 1.5e-05 1.6e-05 1.6e-05 ...
+ $ level     : num  1 1 1 1 1 1 1 1 1 1 ...
+ $ state     : Factor w/ 9 levels "mpi_allreduce",..: 5 3 3 3 3 3 3 3 3 3 ...
+ $ Filename  : Factor w/ 11 levels "bcast_inputs.f",..: 8 1 1 1 1 1 1 1 1 1 ...
+ $ Linenumber: int  31 28 29 30 31 32 33 34 35 36 ...
+ $ origin    : Factor w/ 1 level "SMPI 12 cores": 1 1 1 1 1 1 1 1 1 1 ...
+#+end_example
+
+#+begin_src R :results output :session *R* :exports both
+unique(df_mpi12$state)
+unique(df_smpi12$state)
+#+end_src
+
+#+RESULTS:
+:  [1] mpi_init      mpi_comm_rank mpi_comm_size mpi_bcast     mpi_irecv     mpi_send      mpi_wait      mpi_allreduce mpi_barrier   mpi_recv      mpi_finalize 
+: Levels: mpi_allreduce mpi_barrier mpi_bcast mpi_comm_rank mpi_comm_size mpi_finalize mpi_init mpi_irecv mpi_recv mpi_send mpi_wait
+: [1] mpi_init      mpi_bcast     mpi_send      mpi_irecv     mpi_wait      mpi_allreduce mpi_barrier   mpi_recv      mpi_finalize 
+: Levels: mpi_allreduce mpi_barrier mpi_bcast mpi_finalize mpi_init mpi_irecv mpi_recv mpi_send mpi_wait
+
+Let's get rid of =mpi_comm_size= and =mpi_comm_rank=:
+
+#+begin_src R :results output :session *R* :exports both
+df_mpi12 = df_mpi12[!(df_mpi12$state %in% c("mpi_comm_size","mpi_comm_rank")),]
+#+end_src
+
+#+RESULTS:
+
+We just removed the rows that had those two values in the column
+state; however, since the column =state= is a factor, they will still
+show up. (=factor= means that there is a set of values that are possible)
+
+#+begin_src R :results output :session *R* :exports both
+unique(df_mpi12$state)
+#+end_src
+
+#+RESULTS:
+: [1] mpi_init      mpi_bcast     mpi_irecv     mpi_send      mpi_wait      mpi_allreduce mpi_barrier   mpi_recv      mpi_finalize 
+: Levels: mpi_allreduce mpi_barrier mpi_bcast mpi_comm_rank mpi_comm_size mpi_finalize mpi_init mpi_irecv mpi_recv mpi_send mpi_wait
+
+Let's verify it's coherent with SMPI:
+#+begin_src R :results output :session *R* :exports both
+length(unique(df_mpi12$state)) == length(unique(df_smpi12$state))
+#+end_src
+
+#+RESULTS:
+: [1] TRUE
+
+#+begin_src R :results output :session *R* :exports both
+df_mpi12 = df_mpi12[names(df_mpi12)!="level"];
+df_smpi12 = df_smpi12[names(df_smpi12)!="level"];
+#+end_src
+
+#+RESULTS:
+
+Let's compare the amount of events:
+
+#+begin_src R :results output :session *R* :exports both
+dim(df_mpi12)
+dim(df_smpi12)
+#+end_src
+
+#+RESULTS:
+: [1] 2757157       6
+: [1] 2757156       8
+
+* Fix missing MPI_Finalize call (bug in paje)
+
+Let's add the missing MPI_Finalize to rank 0. This is a bug in PAJE
+that should have been fixed in recent versions (so the following is
+not necessary any longer).
+
+#+begin_src R :results output :session *R* :exports both
+df_smpi12_fake = head(df_smpi12[df_smpi12$state=="mpi_finalize" & df_smpi12$end == max(df_smpi12$end),],n=1)
+df_smpi12_fake$rank=0
+df_smpi12_fake$duration=df_smpi12_fake$end-df_smpi12_fake$start
+df_smpi12 = rbind(df_smpi12, df_smpi12_fake)
+#+end_src
+
+#+RESULTS:
+
+
+The MPI dataframe is lacking filename and linenumber, so let's
+just use the ones from SMPI (they are from the original source code
+files, so they are appropriate for MPI as well).
+
+Let's sort by column rank first:
+
+#+begin_src R :results output :session *R* :exports both
+df_smpi12           = df_smpi12[with(df_smpi12,order(rank,start)),]; # Sort df_smpi
+df_mpi12            = df_mpi12[with(df_mpi12,order(rank,start)),];
+df_mpi12$Filename   = df_smpi12$Filename
+df_mpi12$Linenumber = df_smpi12$Linenumber
+#+end_src
+
+#+RESULTS:
+
+* Compute the =computation= timings!
+
+#+BEGIN_SRC R :results output :session *R* :exports both
+duration_compute = function(df) {
+    ndf = data.frame();
+    df = df[with(df,order(rank,start)),];
+    origin = unique(df$origin)
+    for(i in (sort(unique(df$rank)))) {
+        start     = df[df$rank==i,]$start;
+        end       = df[df$rank==i,]$end;
+        l         = length(end);
+        end       = c(0,end[1:(l-1)]); # Computation starts at time 0
+
+        startline = c(0, df[df$rank==i,]$Linenumber[1:(l-1)]);
+        startfile = c("", as.character(df[df$rank==i,]$Filename[1:(l-1)]));
+        endline   = df[df$rank==i,]$Linenumber;
+        endfile   = df[df$rank==i,]$Filename;
+
+        ndf       = rbind(ndf, data.frame(rank=i, start=end, end=start,
+            duration=start-end, state="Computing", origin=origin,
+            startline=startline, startfile=startfile, endline=endline,
+            endfile=endfile));
+    }
+    ndf$idx = 1:length(ndf$duration)
+    ndf;
+}
+df_mpi12_comp = duration_compute(df_mpi12);
+df_smpi12_comp = duration_compute(df_smpi12);
+#+END_SRC
+
+#+RESULTS:
+
+
+* Generate speedup file
+
+#+begin_src R :results output :session *R* :exports both
+ddf_mpi=ddply(df_mpi12_comp,c("startfile","startline","endfile","endline"),summarize,count=length(duration),duration=sum(duration));
+ddf_mpi$origin="MPI12"
+ddf_mpi = ddf_mpi[with(ddf_mpi,order(startfile,startline,endfile,endline)),];
+
+ddf_smpi=ddply(df_smpi12_comp,c("startfile","startline","endfile","endline"),summarize,count=length(duration),duration=sum(duration));
+ddf_smpi$origin="SMPI"
+ddf_smpi = ddf_smpi[with(ddf_smpi,order(startfile,startline,endfile,endline)),];
+ddf=ddf_smpi
+ddf$rlduration = ddf_mpi$duration
+ddf=ddf[!names(ddf)=="origin"]
+ddf = ddf[ddf$duration>1,]
+head(ddf)
+#+end_src
+
+#+RESULTS:
+:         startfile startline      endfile endline  count   duration rlduration
+: 11 bcast_inputs.f        37 exchange_3.f      42      9   1.897406  11.459090
+: 15   exchange_1.f        30 exchange_1.f      48 240960   6.814807   0.464526
+: 16   exchange_1.f        30 exchange_1.f     113  80320  47.611578  36.714682
+: 17   exchange_1.f        30 exchange_1.f     130  40160  23.014585  17.711225
+: 18   exchange_1.f        48 exchange_1.f      30  39909  40.914132  31.306660
+: 19   exchange_1.f        48 exchange_1.f     113 240960 140.137475 110.589122
+
+#+begin_src R :results output :session *R* :exports both
+ddf$ratio = ddf$duration / ddf$rlduration
+ddf
+sum(ddf$duration)
+sum(ddf$rlduration)
+#+end_src
+
+#+RESULTS:
+#+begin_example
+         startfile startline        endfile endline  count   duration rlduration      ratio
+11  bcast_inputs.f        37   exchange_3.f      42      9   1.897406  11.459090  0.1655809
+15    exchange_1.f        30   exchange_1.f      48 240960   6.814807   0.464526 14.6704533
+16    exchange_1.f        30   exchange_1.f     113  80320  47.611578  36.714682  1.2967994
+17    exchange_1.f        30   exchange_1.f     130  40160  23.014585  17.711225  1.2994350
+18    exchange_1.f        48   exchange_1.f      30  39909  40.914132  31.306660  1.3068827
+19    exchange_1.f        48   exchange_1.f     113 240960 140.137475 110.589122  1.2671904
+20    exchange_1.f        48   exchange_1.f     130  40160  23.105738  18.117715  1.2753119
+22    exchange_1.f        68   exchange_1.f      86 240960   7.078204   0.496461 14.2573213
+23    exchange_1.f        68   exchange_1.f     149  80320  49.818296  36.917500  1.3494493
+24    exchange_1.f        68   exchange_1.f     166  40160  24.672909  18.251679  1.3518159
+25    exchange_1.f        86   exchange_1.f      68  39909  43.393137  32.066507  1.3532231
+26    exchange_1.f        86   exchange_1.f     149 240960 148.546141 110.436460  1.3450824
+27    exchange_1.f        86   exchange_1.f     166  40160  25.060315  18.573204  1.3492726
+28    exchange_1.f        86   exchange_3.f      73    250   3.062204   2.915671  1.0502570
+30    exchange_1.f       113   exchange_1.f      30  79818  55.237256  28.561952  1.9339454
+31    exchange_1.f       113   exchange_1.f      48  39909  27.860205  14.109157  1.9746187
+33    exchange_1.f       113   exchange_1.f     130 240960   3.661200   0.312652 11.7101442
+34    exchange_1.f       130   exchange_1.f      30 239454 168.361242  85.475785  1.9696952
+35    exchange_1.f       130   exchange_1.f      48  39909  28.245751  14.382586  1.9638854
+36    exchange_1.f       130   exchange_1.f      68   1506   1.002664   0.524498  1.9116641
+38    exchange_1.f       130   exchange_1.f     113  39909  48.107018  32.180717  1.4949020
+39    exchange_1.f       149   exchange_1.f      68  79818  55.569462  28.087507  1.9784405
+40    exchange_1.f       149   exchange_1.f      86  39909  27.010726  13.315344  2.0285414
+41    exchange_1.f       149   exchange_1.f     166 240960   3.535476   0.322482 10.9633282
+42    exchange_1.f       149   exchange_3.f      42    750   7.899729   8.361331  0.9447932
+44    exchange_1.f       166   exchange_1.f      68 239454 164.925555  83.439602  1.9765861
+45    exchange_1.f       166   exchange_1.f      86  39909  27.118416  13.617528  1.9914346
+46    exchange_1.f       166   exchange_1.f     149  39909  45.719675  30.848295  1.4820811
+47    exchange_1.f       166   exchange_3.f      42   1500  15.617569  16.850112  0.9268525
+48    exchange_1.f       166   exchange_3.f      73    500   5.500635   6.143575  0.8953476
+50    exchange_3.f        42   exchange_3.f      73   1524   1.710175   1.078730  1.5853596
+54    exchange_3.f        86   exchange_3.f     108   1524   3.988559   0.487534  8.1810889
+55    exchange_3.f        86   exchange_3.f     139    762   2.413731   0.936752  2.5767023
+56    exchange_3.f       108   exchange_3.f     139   1524   1.638622   0.771228  2.1246920
+59    exchange_3.f       139   exchange_3.f     178    508  15.912982  13.404639  1.1871250
+60    exchange_3.f       139   exchange_3.f     209    254   7.969534   6.665093  1.1957123
+61    exchange_3.f       152   exchange_3.f     178   1524  53.239456  42.864135  1.2420513
+62    exchange_3.f       152   exchange_3.f     209    762  26.780502  21.316899  1.2563038
+71    exchange_3.f       275   exchange_1.f      30    747  49.679879  55.816729  0.8900536
+72    exchange_3.f       275   exchange_1.f      48    249  16.580075  18.731022  0.8851666
+78    exchange_3.f       288   exchange_1.f      30   1494 101.176528 113.250811  0.8933846
+79    exchange_3.f       288   exchange_1.f      48    249  17.034232  19.059389  0.8937449
+80    exchange_3.f       288   exchange_1.f     113    249  16.926680  18.798087  0.9004469
+83    exchange_3.f       288       l2norm.f      57     24   1.613920   1.784543  0.9043884
+103    init_comm.f        31 bcast_inputs.f      28     12   1.215429   0.123510  9.8407335
+119         ssor.f       210   exchange_3.f      42      9   1.651463  11.049886  0.1494552
+[1] 1590.031
+[1] 1148.693
+#+end_example
+
+Let's write this to a file so that we can import it to SMPI
+
+#+begin_src R :results output :exports both :width 600 :height 400 :session *R* 
+tmp_df=data.frame("start_stop"=ddf$startfile,"ratio"=ddf$ratio)
+tmp_df$"start_stop"=paste(ddf$startfile, ddf$startline, ddf$endfile, ddf$endline, sep=":")
+write.csv(tmp_df, file="/tmp/2016-08-11-smpi-mpi-ratio.csv", row.names=FALSE)
+head(tmp_df)
+rm(tmp_df)
+#+end_src
+
+#+RESULTS:
+:                          start_stop      ratio
+: 1 bcast_inputs.f:37:exchange_3.f:42  0.1655809
+: 2   exchange_1.f:30:exchange_1.f:48 14.6704533
+: 3  exchange_1.f:30:exchange_1.f:113  1.2967994
+: 4  exchange_1.f:30:exchange_1.f:130  1.2994350
+: 5   exchange_1.f:48:exchange_1.f:30  1.3068827
+: 6  exchange_1.f:48:exchange_1.f:113  1.2671904
+
+
+
+
