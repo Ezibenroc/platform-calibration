@@ -23,7 +23,7 @@
  <detached_threshold value="17408"/>
 
  <!-- This value will be used only when generating the output file, i.e., solely for your convenience -->
- <expected_bandwidth value="7e9"/>
+ <expected_bandwidth value="5e9"/>
  <!-- This value will be used only when generating the output file, i.e., solely for your convenience -->
  <expected_latency value="1e-5"/>
 </config>
