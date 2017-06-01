@@ -1,0 +1,11 @@
+TACC: Starting up job 8522035
+TACC: Setting up parallel environment for MVAPICH2+mpispawn.
+TACC: Starting parallel tasks...
+[0] MPI initialized
+[1] MPI initialized
+[1] m = 3310, max=989921
+[1] Alloc size: 1979842 
+[0] m = 3310, max=989921
+[0] Alloc size: 1979842 
+ 
+TACC: Shutdown complete. Exiting.

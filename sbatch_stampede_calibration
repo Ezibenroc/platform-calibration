@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+#SBATCH -J calibration           # Job bame
+#SBATCH -N 2                     # Asking for 2 nodes
+#SBATCH -n 2                     # My MPI run will have 2 process
+#SBATCH -o job_%j.out            # Output results message
+#SBATCH -e job_%j.err            # Output error message
+#SBATCH -p development           # Use the development queuei
+#SBATCH -t 00:20:00              # My jobs are really short
+# # Other cool options at https://portal.tacc.utexas.edu/user-guides/stampede#running-slurm-jobcontrol-sbatch
+
+# module purge
+# module load slurm/14.03.0
+# module load mpich/ge/gcc/64/3.1.4
+# module load mpi/openmpi
+
+DATE=`date +%y_%m_%d-%H:%M`
+FOLDER="$HOME/platform-calibration"
+DATAFOLDER="data/stampede_$DATE/calibration"
+
+mkdir -p $FOLDER/$DATAFOLDER
+cp $FOLDER/template/testplatform* $FOLDER/src/calibration/zoo_sizes $FOLDER/$DATAFOLDER
+ibrun $FOLDER/src/calibration/calibrate -d $FOLDER/$DATAFOLDER/ -f $FOLDER/$DATAFOLDER/testplatform.xml -s $FOLDER/$DATAFOLDER/zoo_sizes
+# mv ~/job_$SLURM_JOB_ID.* $FOLDER/$DATAFOLDER
+echo "SLURM_NNODES: $SLURM_NNODES" > $FOLDER/$DATAFOLDER/slurm_info.txt
+echo "SLURM_NODELIST: $SLURM_NODELIST" >> $FOLDER/$DATAFOLDER/slurm_info.txt
+echo "SLURM_NTASKS: $SLURM_NTASKS" >> $FOLDER/$DATAFOLDER/slurm_info.txt
+echo "SLURM_TASKS_PER_NODE: $SLURM_TASKS_PER_NODE" >> $FOLDER/$DATAFOLDER/slurm_info.txt
+

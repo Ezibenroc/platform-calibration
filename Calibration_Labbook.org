@@ -937,3 +937,353 @@ ggplot(df, aes(Duration))+geom_histogram()+xlab("Duration [s]")+facet_wrap(~Oper
 
 
   Actually these are very stable!
+** Stampede Measurements                                  :ARNAUD:@stampede:
+*** Information on local editing
+I tried using remote edition with emacs TRAMP but it did not work
+because of the damn token mechanism used at TACC. So I decided to rely
+on sshfs. It works but unfortunately editing within emacs over sshfs
+and a loosy connection is a nightmare :(. I'm just keeping this for
+the records and in the end I made cut & paste between emacs and my
+terminal. :(
+
+#+begin_src sh :results output :exports both
+mkdir -p /tmp/stampede
+cd /tmp
+sshfs stampede: stampede
+#+end_src
+
+#+begin_src sh :results output :exports both 
+cd /tmp/stampede
+git clone git@gitlab.inria.fr:simgrid/platform-calibration.git
+#+end_src
+
+#+RESULTS:
+#+BEGIN_EXAMPLE
+Initialized empty Git repository in /home1/04778/alegrand/platform-calibration/.git/
+The authenticity of host 'gitlab.inria.fr (128.93.193.8)' can't be established.
+ECDSA key fingerprint is SHA256:Taz+3BXCos4TzUaFEJPnlqox9DBmiDVKKJXLMsPe5tc.
+Are you sure you want to continue connecting (yes/no)? yes
+Warning: Permanently added 'gitlab.inria.fr,128.93.193.8' (ECDSA) to the list of known hosts.
+remote: Counting objects: 553, done.
+remote: Compressing objects: 100% (280/280), done.
+remote: Total 553 (delta 269), reused 539 (delta 255)
+Receiving objects: 100% (553/553), 35.23 MiB | 9.93 MiB/s, done.
+Resolving deltas: 100% (269/269), done.
+#+END_EXAMPLE
+
+Then, I can edit
+file:/tmp/stampede/platform-calibration/Calibration_Labbook.org
+
+*** Accessing stampede, getting a few information and compiling
+#+begin_src sh :session foo :results output :exports both 
+ssh stampede
+#+end_src
+
+#+RESULTS:
+#+BEGIN_EXAMPLE
+To access the system:
+
+1) If not using ssh-keys, please enter your TACC password at the password prompt
+2) At the TACC Token prompt, enter your 6-digit code followed by <return>.  
+
+Authenticated with partial success.
+TACC Token Code:567303
+
+Last login: Wed May 31 09:47:22 2017 from 162.245.18.83
+------------------------------------------------------------------------------
+                   Welcome to the Stampede Supercomputer
+      Texas Advanced Computing Center, The University of Texas at Austin
+------------------------------------------------------------------------------
+
+              ** Unauthorized use/access is prohibited. **
+
+If you log on to this computer system, you acknowledge your awareness
+of and concurrence with the UT Austin Acceptable Use Policy. The
+University will prosecute violators to the full extent of the law.
+
+TACC Usage Policies:
+http://www.tacc.utexas.edu/user-services/usage-policies/
+______________________________________________________________________________
+
+Questions and Problem Reports:
+
+--> XD Projects:     help@xsede.org (email)
+--> TACC Projects:   portal.tacc.utexas.edu (web)
+
+Documentation:  http://www.tacc.utexas.edu/user-services/user-guides/
+User News:      http://www.tacc.utexas.edu/user-services/user-news/
+______________________________________________________________________________
+
+Welcome to Stampede, *please* read these important system notes:
+
+--> Stampede is currently running the SLURM resource manager to
+    schedule all compute resources. Example SLURM job scripts are
+    available on the system at /share/doc/slurm
+
+    For interactive access to nodes, execute: idev
+    To submit a batch job, issue:             sbatch job.mpi 
+    To show all queued jobs, issue:           showq
+    To kill a queued job, issue:              scancel <jobId>
+
+    See "man slurm" or the Stampede user guide for more detailed information.
+
+--> To see all the software that is available across all compilers and 
+    mpi stacks, issue: "module spider"
+
+--> To see which software packages are available with your currently loaded
+    compiler and mpi stack, issue: "module avail"
+
+--> Stampede has three parallel file systems: $HOME (permanent,
+    quota'd, backed-up) $WORK (permanent, quota'd, not backed-up) and
+    $SCRATCH (high-speed purged storage). The "cdw" and "cds" aliases
+    are provided as a convenience to change to your $WORK and $SCRATCH
+    directories, respectively.
+______________________________________________________________________________
+
+--------------------- Project balances for user alegrand ----------------------
+| Name           Avail SUs     Expires |                                      |
+| Simgrid            24987  2017-09-30 |                                      |
+------------------------ Disk quotas for user alegrand ------------------------
+| Disk         Usage (GB)     Limit    %Used   File Usage       Limit   %Used |
+| /home1              0.0       5.0     0.05           22      150000    0.01 |
+| /work               0.0    1024.0     0.00            2     3000000    0.00 |
+| /scratch            0.0       0.0     0.00            1           0    0.00 |
+-------------------------------------------------------------------------------
+
+Tip 106   (See "module help tacc_tips" for features or how to disable)
+
+   To print a file with line numbers do:
+     $ nl <file>
+   or
+     $ cat -n <file>
+
+
+===============================================================================
+                          --- Stampede 2 is coming ---                         
+     --- Stampede 1 will start phased decommissioning in January 2017 ---      
+          --- The KNLs are now available <> Start migrating today ---          
+            https://portal.tacc.utexas.edu/user-news/-/news/101909             
+            https://portal.tacc.utexas.edu/user-guides/stampede#knl            
+===============================================================================
+#+END_EXAMPLE
+
+#+begin_src sh :session foo :results output :exports both 
+idev
+#+end_src
+
+#+RESULTS:
+#+BEGIN_EXAMPLE
+
+Defaults file    : ~/.idevrc
+Project          : use_default 
+Default  time    : 30 min.
+Default  queue   : development
+System           : Stampede
+Default tot tasks: -n 16 
+Default nodes    : -N 1
+  end of defaults: ----------------------------------------------
+-----------------------------------------------------------------
+              Welcome to the Stampede Supercomputer              
+-----------------------------------------------------------------
+
+No reservation for this job
+--> Verifying valid submit host (login3)...OK
+--> Verifying valid jobname...OK
+--> Enforcing max jobs per user...OK
+--> Verifying availability of your home dir (/home1/04778/alegrand)...OK
+--> Verifying availability of your work dir (/work/04778/alegrand)...OK
+--> Verifying valid ssh keys...OK
+--> Verifying access to desired queue (development)...OK
+--> Verifying job request is within current queue limits...OK
+--> Checking available allocation (Simgrid)...OK
+Submitted batch job 8519053
+
+ After your idev job begins to run, a command prompt will appear,
+ and you can begin your interactive development session. 
+ We will report the job status every 4 seconds: (PD=pending, R=running).
+
+job status:  PD
+job status:  R
+--> Job is now running on masternode= c557-904...OK
+--> Sleeping for 7 seconds...OK
+--> Checking to make sure your job has initialized an env for you....OK
+--> Creating interactive terminal session (login) on master node c557-904.
+TACC Stampede System
+LosF 0.40.0 (Top Notch)
+Provisioned on 23-Sep-2012 at 15:37
+#+END_EXAMPLE
+
+#+begin_src sh :session foo :results output :exports both 
+mpirun --version
+#+end_src
+
+#+RESULTS:
+#+begin_example
+HYDRA build details:
+    Version:                                 3.1.4
+    Release Date:                            Thu Apr  2 17:15:15 EDT 2015
+    CC:                              icc    -Wl,-rpath,/opt/apps/intel/15/composer_xe_2015.2.164/compiler/lib/intel64 -Wl,-rpath,/opt/apps/intel/15/composer_xe_2015.2.164/compiler/lib/intel64 -pipe -fno-strict-aliasing  -Wl,-rpath,/opt/ofed/lib64 -L/opt/ofed/lib64 
+    CXX:                             icpc    -Wl,-rpath,/opt/apps/intel/15/composer_xe_2015.2.164/compiler/lib/intel64 -Wl,-rpath,/opt/apps/intel/15/composer_xe_2015.2.164/compiler/lib/intel64 -pipe -fno-strict-aliasing  -Wl,-rpath,/opt/ofed/lib64 -L/opt/ofed/lib64 
+    F77:                             ifort   -Wl,-rpath,/opt/apps/intel/15/composer_xe_2015.2.164/compiler/lib/intel64 -Wl,-rpath,/opt/apps/intel/15/composer_xe_2015.2.164/compiler/lib/intel64 -pipe -fno-strict-aliasing  -Wl,-rpath,/opt/ofed/lib64 -L/opt/ofed/lib64 
+    F90:                             ifort   -Wl,-rpath,/opt/apps/intel/15/composer_xe_2015.2.164/compiler/lib/intel64 -Wl,-rpath,/opt/apps/intel/15/composer_xe_2015.2.164/compiler/lib/intel64  -Wl,-rpath,/opt/ofed/lib64 -L/opt/ofed/lib64 
+    Configure options:                       '--disable-option-checking' '--prefix=/opt/apps/intel15/mvapich2/2.1' '--with-ib-libpath=/opt/ofed/lib64/' '--with-ib-include=/opt/ofed/include/' '--enable-cxx' '--enable-romio' '--enable-fast=O3' '--enable-g=dbg' '--enable-sharedlibs=gcc' '--enable-shared' '--with-ch3-rank-bits=32' '--with-file-system=lustre' '--enable-mcast' '--enable-hybrid' 'CC=icc' 'CFLAGS= -Wl,-rpath,/opt/apps/intel/15/composer_xe_2015.2.164/compiler/lib/intel64 -Wl,-rpath,/opt/apps/intel/15/composer_xe_2015.2.164/compiler/lib/intel64 -pipe -fno-strict-aliasing -g -O3' 'LDFLAGS=-L/opt/ofed/lib64/ -L/lib -L/lib -Wl,-rpath,/opt/ofed/lib64 -L/opt/ofed/lib64 -L/lib -Wl,-rpath,/lib -L/lib -Wl,-rpath,/lib -L/opt/ofed/lib64/ -L/lib -L/lib' 'CXX=icpc' 'CXXFLAGS= -Wl,-rpath,/opt/apps/intel/15/composer_xe_2015.2.164/compiler/lib/intel64 -Wl,-rpath,/opt/apps/intel/15/composer_xe_2015.2.164/compiler/lib/intel64 -pipe -fno-strict-aliasing -g -O3' 'FC=ifort' 'FCFLAGS= -Wl,-rpath,/opt/apps/intel/15/composer_xe_2015.2.164/compiler/lib/intel64 -Wl,-rpath,/opt/apps/intel/15/composer_xe_2015.2.164/compiler/lib/intel64 -g -O3' 'F77=ifort' 'FFLAGS=-L/opt/ofed/lib64/ -L/lib -L/lib -Wl,-rpath,/opt/apps/intel/15/composer_xe_2015.2.164/compiler/lib/intel64 -Wl,-rpath,/opt/apps/intel/15/composer_xe_2015.2.164/compiler/lib/intel64 -pipe -fno-strict-aliasing -g -O3' '--cache-file=/dev/null' '--srcdir=.' 'LIBS=-libmad -lrdmacm -libumad -libverbs -lrt -lpthread ' 'CPPFLAGS=-I/opt/ofed/include/ -I/admin/build/admin/rpms/stampede/BUILD/mvapich2-2.1/src/mpl/include -I/admin/build/admin/rpms/stampede/BUILD/mvapich2-2.1/src/mpl/include -I/admin/build/admin/rpms/stampede/BUILD/mvapich2-2.1/src/openpa/src -I/admin/build/admin/rpms/stampede/BUILD/mvapich2-2.1/src/openpa/src -D_REENTRANT -I/admin/build/admin/rpms/stampede/BUILD/mvapich2-2.1/src/mpi/romio/include -I/include -I/include -I/opt/ofed/include/ -I/include -I/include'
+    Process Manager:                         pmi
+    Launchers available:                     ssh rsh fork slurm ll lsf sge manual persist
+    Topology libraries available:            hwloc
+    Resource management kernels available:   user slurm ll lsf sge pbs cobalt
+    Checkpointing libraries available:       
+    Demux engines available:                 poll select
+#+end_example
+
+#+begin_src sh :session foo :results output :exports both 
+cd ~/platform-calibration/
+make -C src/calibration calibrate
+#+end_src
+
+#+RESULTS:
+: 
+: mpicc -o calibrate  calibrate.c experiments.c -I. -I/usr/include/libxml2 -lxml2 -lrt
+
+*** Writing an appropriate sbatch script and running it
+You can't run =mpirun=, it's called =ibrun=. After reading the doc on how
+to run MPI on stampede, I was able to write a clean sbatch script:
+https://portal.tacc.utexas.edu/user-guides/stampede#running-envs-mpi-ibrun
+
+**** Let's make a run with 2 hosts:
+#+begin_src sh :session foo :results output :exports both 
+cd ~/
+cat platform-calibration/sbatch_stampede_calibration
+#+end_src
+
+#+RESULTS:
+#+BEGIN_EXAMPLE
+#!/usr/bin/env bash
+#SBATCH -J calibration           # Job bame
+#SBATCH -N 2                     # Asking for 2 nodes
+#SBATCH -n 2                     # My MPI run will have 2 process
+#SBATCH -o job_%j.out            # Output results message
+#SBATCH -e job_%j.err            # Output error message
+#SBATCH -p development           # Use the development queuei
+#SBATCH -t 00:20:00              # My jobs are really short
+# # Other cool options at https://portal.tacc.utexas.edu/user-guides/stampede#running-slurm-jobcontrol-sbatch
+
+# module purge
+# module load slurm/14.03.0
+# module load mpich/ge/gcc/64/3.1.4
+# module load mpi/openmpi
+
+DATE=`date +%y_%m_%d-%H:%M`
+FOLDER="$HOME/platform-calibration"
+DATAFOLDER="data/stampede_$DATE/calibration"
+
+mkdir -p $FOLDER/$DATAFOLDER
+cp $FOLDER/template/testplatform* $FOLDER/src/calibration/zoo_sizes $FOLDER/$DATAFOLDER
+ibrun $FOLDER/src/calibration/calibrate -d $FOLDER/$DATAFOLDER/ -f $FOLDER/$DATAFOLDER/testplatform.xml -s $FOLDER/$DATAFOLDER/zoo_sizes
+# mv ~/job_$SLURM_JOB_ID.* $FOLDER/$DATAFOLDER
+echo "SLURM_NNODES: $SLURM_NNODES" > $FOLDER/$DATAFOLDER/slurm_info.txt
+echo "SLURM_NODELIST: $SLURM_NNODELIST" >> $FOLDER/$DATAFOLDER/slurm_info.txt
+echo "SLURM_NTASKS: $SLURM_NTASKS" >> $FOLDER/$DATAFOLDER/slurm_info.txt
+echo "SLURM_TASKS_PER_NODE: $SLURM_TASKS_PER_NODE" >> $FOLDER/$DATAFOLDER/slurm_info.txt
+#+END_EXAMPLE
+
+#+begin_src sh :session foo :results output :exports both 
+sbatch /home1/04778/alegrand/platform-calibration/sbatch_stampede_calibration 
+#+end_src
+
+#+RESULTS:
+#+begin_src R :results output :session *R* :exports both
+-----------------------------------------------------------------
+              Welcome to the Stampede Supercomputer              
+-----------------------------------------------------------------
+
+No reservation for this job
+--> Verifying valid submit host (login3)...OK
+--> Verifying valid jobname...OK
+--> Enforcing max jobs per user...OK
+--> Verifying availability of your home dir (/home1/04778/alegrand)...OK
+--> Verifying availability of your work dir (/work/04778/alegrand)...OK
+--> Verifying valid ssh keys...OK
+--> Verifying access to desired queue (development)...OK
+--> Verifying job request is within current queue limits...OK
+--> Checking available allocation (Simgrid)...OK
+Submitted batch job 8522008
+#+end_src
+
+Unfortunately, there was a typo in my script on =SLURM_NODELIST= so I
+lost this information... Fortunately I recovered it:
+
+#+begin_src sh :session foo :results output :exports both 
+sacct -j 8522008 --format=nodelist
+#+end_src
+
+#+RESULTS:
+#+BEGIN_EXAMPLE
+       NodeList 
+--------------- 
+ c558-[203,304] 
+       c558-203 
+#+END_EXAMPLE
+
+**** Let's make a run with only 1 host:
+#+begin_src sh :session foo :results output :exports both 
+cd ~/
+cat platform-calibration/sbatch_stampede_calibration
+#+end_src
+
+#+RESULTS:
+#+BEGIN_EXAMPLE
+#!/usr/bin/env bash
+#SBATCH -J calibration           # Job bame
+#SBATCH -N 1                     # Asking for 1 node
+#SBATCH -n 2                     # My MPI run will have 2 process
+#SBATCH -o job_%j.out            # Output results message
+#SBATCH -e job_%j.err            # Output error message
+#SBATCH -p development           # Use the development queuei
+#SBATCH -t 00:20:00              # My jobs are really short
+# # Other cool options at https://portal.tacc.utexas.edu/user-guides/stampede#running-slurm-jobcontrol-sbatch
+
+# module purge
+# module load slurm/14.03.0
+# module load mpich/ge/gcc/64/3.1.4
+# module load mpi/openmpi
+
+DATE=`date +%y_%m_%d-%H:%M`
+FOLDER="$HOME/platform-calibration"
+DATAFOLDER="data/stampede_$DATE/calibration"
+
+mkdir -p $FOLDER/$DATAFOLDER
+cp $FOLDER/template/testplatform* $FOLDER/src/calibration/zoo_sizes $FOLDER/$DATAFOLDER
+ibrun $FOLDER/src/calibration/calibrate -d $FOLDER/$DATAFOLDER/ -f $FOLDER/$DATAFOLDER/testplatform.xml -s $FOLDER/$DATAFOLDER/zoo_sizes
+# mv ~/job_$SLURM_JOB_ID.* $FOLDER/$DATAFOLDER
+echo "SLURM_NNODES: $SLURM_NNODES" > $FOLDER/$DATAFOLDER/slurm_info.txt
+echo "SLURM_NODELIST: $SLURM_NODELIST" >> $FOLDER/$DATAFOLDER/slurm_info.txt
+echo "SLURM_NTASKS: $SLURM_NTASKS" >> $FOLDER/$DATAFOLDER/slurm_info.txt
+echo "SLURM_TASKS_PER_NODE: $SLURM_TASKS_PER_NODE" >> $FOLDER/$DATAFOLDER/slurm_info.txt
+#+END_EXAMPLE
+
+#+begin_src sh :session foo :results output :exports both 
+sbatch /home1/04778/alegrand/platform-calibration/sbatch_stampede_calibration 
+#+end_src
+
+#+RESULTS:
+#+BEGIN_EXAMPLE
+-----------------------------------------------------------------
+              Welcome to the Stampede Supercomputer              
+-----------------------------------------------------------------
+
+No reservation for this job
+--> Verifying valid submit host (login3)...OK
+--> Verifying valid jobname...OK
+--> Enforcing max jobs per user...OK
+--> Verifying availability of your home dir (/home1/04778/alegrand)...OK
+--> Verifying availability of your work dir (/work/04778/alegrand)...OK
+--> Verifying valid ssh keys...OK
+--> Verifying access to desired queue (development)...OK
+--> Verifying job request is within current queue limits...OK
+--> Checking available allocation (Simgrid)...OK
+Submitted batch job 8522035
+#+END_EXAMPLE
+
+*** Useful information for when I'll calibrate HPL with MKL
+- https://portal.tacc.utexas.edu/user-guides/stampede#mkl-threading
+- https://portal.tacc.utexas.edu/user-guides/stampede#mkl-othercapabilities
