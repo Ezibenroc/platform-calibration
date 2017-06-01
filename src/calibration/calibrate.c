@@ -264,6 +264,7 @@ int main(int argc, char** argv){
   int my_rank;
   int size;
   int m=0;
+
   MPI_Init(&argc, &argv);
 
   MPI_Comm_size(MPI_COMM_WORLD, &size);
@@ -272,6 +273,8 @@ int main(int argc, char** argv){
     return -1;
   }
   MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
+
+  printf("[%d] MPI initialized\n", get_rank());
 
   FILE* fin;
   fin=fopen(arguments.sizefile, "r");
@@ -294,8 +297,9 @@ int main(int argc, char** argv){
     offset=0;
     rewind(fin);
   }
-  fclose (fin);
-  printf("m = %d, max=%d\n",m, max);
+  fclose(fin);
+
+  printf("[%d] m = %d, max=%d\n",get_rank(), m, max);
   // Build a totally stupid datatype
   struct { int a;int c; double b;int test[10][3];int tab[2][3];} value;
   MPI_Datatype mystruct;
@@ -329,11 +333,20 @@ int main(int argc, char** argv){
 
     // initialize buffers for input and output (max size)
 
-  my_send_buffer = (void*)malloc(max*sizeof(value));
-  my_receive_buffer = (void*)malloc(max*sizeof(value));
+  /* my_send_buffer = (void*)malloc(max*sizeof(value));   */
+  /* my_receive_buffer = (void*)malloc(max*sizeof(value));*/
+   
+  int max_buffer_size = max*2;
+  my_send_buffer = (void*)malloc(max_buffer_size);
+  my_receive_buffer = (void*)malloc(max_buffer_size);
+
+  printf("[%d] Alloc size: %d \n", get_rank(), max_buffer_size);
+
 
   if(my_send_buffer==NULL || my_receive_buffer==NULL){
-    printf("Can't allocate memory, decrease max size of the messages \n");
+    printf("Can't allocate memory (%g GB), decrease max size of the messages \n",
+          max_buffer_size/(1073741824));
+
     return -1;
   }
 
