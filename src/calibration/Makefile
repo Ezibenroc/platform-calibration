@@ -9,8 +9,8 @@ EXEC=calibrate
 
 default: calibrate
 
-calibrate:
-	$(CC) -o $(EXEC)  calibrate.c experiments.c -I. $(LDIR) $(LIBS)
+calibrate: calibrate.c experiments.c 
+	$(CC) -o $@ $^ -I. $(LDIR) $(LIBS)
 
 .PHONY: clean
 
