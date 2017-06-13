@@ -19,8 +19,8 @@
 
 <!-- File containing the breakpoints; breakpoints define the begin/end of any segment of the (segmented) regression -->
  <breakpoints_file value="testplatform_breakpoints"/>
- <eager_threshold value="17408"/>
- <detached_threshold value="17408"/>
+ <eager_threshold value="17420"/>
+ <detached_threshold value="110000"/>
 
  <!-- This value will be used only when generating the output file, i.e., solely for your convenience -->
  <expected_bandwidth value="1e9"/>

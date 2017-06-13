@@ -1287,3 +1287,26 @@ Submitted batch job 8522035
 *** Useful information for when I'll calibrate HPL with MKL
 - https://portal.tacc.utexas.edu/user-guides/stampede#mkl-threading
 - https://portal.tacc.utexas.edu/user-guides/stampede#mkl-othercapabilities
+*** Running analysis
+**** Communications over IB (two nodes): data/stampede_17_06_01-17:14 :deprecated:
+#+begin_src sh :results silent :exports both
+cd data/stampede_17_06_01-17\:14/calibration/
+ln -sf ../../../src/calibration/Analysis.Rmd ./
+ln -sf ../../../src/calibration/Makefile ./
+make testplatform.html
+#+end_src
+
+file:data/stampede_17_06_01-17:14/calibration/testplatform.html
+**** Communications over the loopback (one node): data/stampede_17_06_01-17:26 :deprecated:
+#+begin_src sh :results output :exports both
+cd data/stampede_17_06_01-17\:26/calibration/
+ln -sf ../../../src/calibration/Analysis.Rmd ./
+ln -sf ../../../src/calibration/Makefile ./
+make testplatform.html
+#+end_src
+
+file:data/stampede_17_06_01-17:26/calibration/testplatform.html
+**** Modeling and comparing communications over the IB and over the loopback
+The breakpoints were completely broken and the data looked weird so I
+started rewriting my own [[file:data/stampede_17_06_01-17:14/calibration/analysis.org][analysis]].
+

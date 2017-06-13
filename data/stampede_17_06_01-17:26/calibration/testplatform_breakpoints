@@ -1,5 +1,4 @@
 Limit, Name
-1420, Small
-7000, Medium
-174080, Asynchronous
+150, Small
+8192, Medium
 260000, Detached
