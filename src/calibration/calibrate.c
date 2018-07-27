@@ -337,6 +337,8 @@ int main(int argc, char** argv){
   /* my_receive_buffer = (void*)malloc(max*sizeof(value));*/
    
   int max_buffer_size = max*2;
+  if(max_buffer_size < 10000)
+    max_buffer_size = 10000;
   my_send_buffer = (void*)malloc(max_buffer_size);
   my_receive_buffer = (void*)malloc(max_buffer_size);
 
