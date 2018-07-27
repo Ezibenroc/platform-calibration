@@ -78,6 +78,33 @@ static struct argp_option options[] = {
   { 0 }
 };
 
+/* Returns an integer in the range [0, n).
+ * Code taken from https://stackoverflow.com/a/822361/4110059
+ * Uses rand(), and so is affected-by/affects the same seed.
+ */
+int randint(int n) {
+  if ((n - 1) == RAND_MAX) {
+    return rand();
+  } else {
+    // Supporting larger values for n would requires an even more
+    // elaborate implementation that combines multiple calls to rand()
+    assert (n <= RAND_MAX);
+
+    // Chop off all of the values that would cause skew...
+    int end = RAND_MAX / n; // truncate skew
+    assert (end > 0);
+    end *= n;
+
+    // ... and ignore results from rand() that fall above that limit.
+    // (Worst case the loop condition should succeed 50% of the time,
+    // so we can expect to bail out of this loop pretty quickly.)
+    int r;
+    while ((r = rand()) >= end);
+
+    return r % n;
+  }
+}
+
 static int parse_options (int key, char *arg, struct argp_state *state)
 {
   my_args *arguments = state->input;
@@ -298,6 +325,16 @@ int main(int argc, char** argv){
     rewind(fin);
   }
   fclose(fin);
+
+  // Shuffling the array, using https://en.wikipedia.org/wiki/Fisher%E2%80%93Yates_shuffle
+  // Need to use the same seed on both nodes
+  srand(42);
+  for(i = m-1; i > 0 ; i--) {
+    int j = randint(i+1);
+    int tmp = sizes[i];
+    sizes[i] = sizes[j];
+    sizes[j] = tmp;
+  }
 
   printf("[%d] m = %d, max=%d\n",get_rank(), m, max);
   // Build a totally stupid datatype
