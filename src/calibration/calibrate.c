@@ -53,10 +53,8 @@ unsigned long long base_time;
 
 typedef struct {
   char* sizefile;
-  char* filename;
   int max_size;
   int min_size;
-  int nb_runs;
   char* prefix;
   char* dir_name;
 } my_args;
@@ -70,38 +68,10 @@ static struct argp_option options[] = {
   {"sizeFile", 's', "SIZEFILE", 0, "filename of the size list"},
   {"min_size", 'm', "MIN SIZE", 0, "Minimum size to process"},
   {"max_size", 'M', "MAX SIZE", 0, "Maximum size to process"},
-  {"nb_runs", 'n', "NB RUNS", 0, "number of times you want to execute the run"},
   {"prefix", 'p', "PREFIX", 0, "prefix of the csv files"},
   {"dir_name", 'd', "dir_name", 0, "Name/path of the directory to save files into. No trailing slashes."},
   { 0 }
 };
-
-/* Returns an integer in the range [0, n).
- * Code taken from https://stackoverflow.com/a/822361/4110059
- * Uses rand(), and so is affected-by/affects the same seed.
- */
-int randint(int n) {
-  if ((n - 1) == RAND_MAX) {
-    return rand();
-  } else {
-    // Supporting larger values for n would requires an even more
-    // elaborate implementation that combines multiple calls to rand()
-    assert (n <= RAND_MAX);
-
-    // Chop off all of the values that would cause skew...
-    int end = RAND_MAX / n; // truncate skew
-    assert (end > 0);
-    end *= n;
-
-    // ... and ignore results from rand() that fall above that limit.
-    // (Worst case the loop condition should succeed 50% of the time,
-    // so we can expect to bail out of this loop pretty quickly.)
-    int r;
-    while ((r = rand()) >= end);
-
-    return r % n;
-  }
-}
 
 static int parse_options (int key, char *arg, struct argp_state *state)
 {
@@ -113,18 +83,11 @@ static int parse_options (int key, char *arg, struct argp_state *state)
   case 'M':
     arguments->max_size = atoi(arg);
     break;
-  case 'n':
-    arguments->nb_runs = atoi(arg);
-    break;
   case 'p':
     arguments->prefix = arg;
     break;
    case 's':
     arguments->sizefile = arg;
-    break;
-
-  case 'f':
-    arguments->filename = arg;
     break;
   case 'd':
     arguments->dir_name = arg;
@@ -192,7 +155,7 @@ int get_size(){
   return size;
 }
 
-FILE *open_file(char* name){
+FILE *open_file(const char* name){
     char* filename= malloc(MAX_NAME_SIZE*sizeof(char));
     sprintf(filename, "%s/%s_%s.csv", dir_name, basename, name);
     FILE *file = fopen(filename, "w");
@@ -234,8 +197,6 @@ int main(int argc, char** argv){
     return 1;
   }
 
-  if(arguments.nb_runs ==0)arguments.nb_runs=1;
-
   if(arguments.prefix!=NULL)
     basename=arguments.prefix;
   if(arguments.dir_name!=NULL) {
@@ -247,7 +208,7 @@ int main(int argc, char** argv){
   }
   //
 // load sizes from file
-  int sizes[MAX_LINES*arguments.nb_runs];
+  int sizes[MAX_LINES];
   int index;
   int my_rank;
   int size;
@@ -280,28 +241,14 @@ int main(int argc, char** argv){
   int i =0;
   //read and compute max size
   int offset=0;
-  for(i=0;i<arguments.nb_runs;i++){
-    while (fscanf(fin, "%d\n" , &sizes[m+offset]) != EOF  && offset<MAX_LINES) {
-      if(arguments.max_size==0 || (sizes[m+offset] < arguments.max_size && sizes[m+offset]>= arguments.min_size)){
-        if(sizes[m+offset]>max)max=sizes[m+offset];
-        offset++;
-      }
+  while (fscanf(fin, "%d\n" , &sizes[m+offset]) != EOF  && offset<MAX_LINES) {
+    if(arguments.max_size==0 || (sizes[m+offset] < arguments.max_size && sizes[m+offset]>= arguments.min_size)){
+      if(sizes[m+offset]>max)max=sizes[m+offset];
+      offset++;
     }
-    m+=offset;
-    offset=0;
-    rewind(fin);
   }
+  m = offset;
   fclose(fin);
-
-  // Shuffling the array, using https://en.wikipedia.org/wiki/Fisher%E2%80%93Yates_shuffle
-  // Need to use the same seed on both nodes
-  srand(42);
-  for(i = m-1; i > 0 ; i--) {
-    int j = randint(i+1);
-    int tmp = sizes[i];
-    sizes[i] = sizes[j];
-    sizes[j] = tmp;
-  }
 
   printf("[%d] m = %d, max=%d\n",get_rank(), m, max);
   // Build a totally stupid datatype
