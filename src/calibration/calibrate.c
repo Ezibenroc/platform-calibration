@@ -36,7 +36,6 @@ We can set the maximum limit for the sizes with -s (as sizes go up to 1GB in zoo
 #include <argp.h>
 #include <string.h>
 #include "calibrate.h"
-#include <libxml/xmlreader.h>
 
 
 #define MAX_LINES 2000
@@ -74,7 +73,6 @@ static struct argp_option options[] = {
   {"nb_runs", 'n', "NB RUNS", 0, "number of times you want to execute the run"},
   {"prefix", 'p', "PREFIX", 0, "prefix of the csv files"},
   {"dir_name", 'd', "dir_name", 0, "Name/path of the directory to save files into. No trailing slashes."},
-  {"filename", 'f', "FILENAME", 0, "XML filename"},
   { 0 }
 };
 
@@ -137,43 +135,6 @@ static int parse_options (int key, char *arg, struct argp_state *state)
   return 0;
 }
 
-
-static int parse_xml_file(const char* filename, my_args *arguments){
-  xmlTextReaderPtr reader;
-  int ret;
-  reader = xmlReaderForFile(filename, NULL, 0);
-  if (reader != NULL) {
-    ret = xmlTextReaderRead(reader);
-    while (ret == 1) {
-      const xmlChar *name, *value;
-
-      name = xmlTextReaderConstName(reader);
-      if (name == NULL)
-        name = BAD_CAST "--";
-      value = xmlTextReaderGetAttribute(reader, "value");
-
-       if(!strcmp(name, "iterations"))
-         arguments->nb_runs=atoi(value);
-       if(!strcmp(name, "minSize"))
-         arguments->min_size=atoi(value);
-       if(!strcmp(name, "maxSize"))
-         arguments->max_size=atoi(value);
-       if(!strcmp(name, "prefix"))
-         arguments->prefix=(char*)value;
-       if(!strcmp(name, "dirname"))
-         arguments->dir_name=(char*)value;
-       if(!strcmp(name, "sizeFile"))
-         arguments->sizefile=(char*)value;
-      ret = xmlTextReaderRead(reader);
-    }
-    xmlFreeTextReader(reader);
-    if (ret != 0) {
-      fprintf(stderr, "%s : failed to parse\n", filename);
-    }
-  }
-  return 0;
-}
-
 struct argp argp = { options, parse_options, NULL, doc };
 my_args arguments;
 #ifdef HAVE_CLOCKGETTIME
@@ -231,30 +192,39 @@ int get_size(){
   return size;
 }
 
-void switch_file(char* name){
-    int topo;
-    MPI_Barrier(MPI_COMM_WORLD);
-    //dump previous buffer
-    if(active_file){
-      fflush(active_file);
-      fclose(active_file);
-    }
-    //open new file
+FILE *open_file(char* name){
     char* filename= malloc(MAX_NAME_SIZE*sizeof(char));
     sprintf(filename, "%s/%s_%s.csv", dir_name, basename, name);
-    active_file=fopen(filename, "w");
+    FILE *file = fopen(filename, "w");
+    free(filename);
     MPI_Barrier(MPI_COMM_WORLD);
+    return file;
 }
 
-void print_in_file(const char* func, int count, unsigned long long start, unsigned long long resul){
-  fprintf(active_file, "%s,%d,%f,%e\n", func, count, (start-base_time)/precision, resul/precision);
+void print_in_file(FILE *file, const char* func, int count, unsigned long long start, unsigned long long resul){
+  fprintf(file, "%s,%d,%f,%e\n", func, count, (start-base_time)/precision, resul/precision);
 }
 
 
+static const char *names[] = {"Recv", "Isend", "PingPong", "Wtime", "Iprobe", "Test", NULL};
+static const void (*functions[])(FILE*, int, int) = {get_Recv, get_Isend, get_PingPong, get_Wtime,
+                                                 get_Iprobe, get_Test};
 
+int op_from_string(const char *op_name) {
+  for(int i = 0; names[i]; i++) {
+    if(strcmp(op_name, names[i])==0)
+      return i;
+  }
+  fprintf(stderr, "Unknown MPI operation %s\n", op_name);
+  exit(1);
+}
+
+void test_op(FILE *output_files[], const char *op_name, int size, int nb_runs) {
+  int op_id = op_from_string(op_name);
+  functions[op_id](output_files[op_id], size, nb_runs);
+}
 
 int main(int argc, char** argv){
-  LIBXML_TEST_VERSION
 
   bzero (&arguments, sizeof(my_args));
 
@@ -263,16 +233,6 @@ int main(int argc, char** argv){
     fprintf(stderr,"error during the parsing of parameters\n");
     return 1;
   }
-  parse_xml_file(arguments.filename, &arguments);
-
-  //override xml with command line ?
-  if (argp_parse (&argp, argc, argv, 0, 0, &arguments) == ARGP_KEY_ERROR){
-    fprintf(stderr,"error during the parsing of parameters\n");
-    return 1;
-  }
-
-
-
 
   if(arguments.nb_runs ==0)arguments.nb_runs=1;
 
@@ -285,6 +245,7 @@ int main(int argc, char** argv){
     printf("Please provide a name for a file containing a list of sizes\n");
     return -1;
   }
+  //
 // load sizes from file
   int sizes[MAX_LINES*arguments.nb_runs];
   int index;
@@ -293,6 +254,12 @@ int main(int argc, char** argv){
   int m=0;
 
   MPI_Init(&argc, &argv);
+
+  FILE *output_files[6];
+  for(int i = 0; names[i]; i++) {
+    output_files[i] = open_file(names[i]);
+  }
+
 
   MPI_Comm_size(MPI_COMM_WORLD, &size);
   if(size<2){
@@ -393,46 +360,28 @@ int main(int argc, char** argv){
   base_time=get_time();
 
   //First Test : The Receive
-
-  switch_file("Recv");
-  //int i;
   for(i=0;i<m;i++){
-    //printf("%d : receive with size %d\n", my_rank, sizes[i]);
-    get_Recv(sizes[i], NB_RUNS);
+    test_op(output_files, "Recv", sizes[i], NB_RUNS);
   }
 
 
   //Second Test : The Isend
-  switch_file("Isend");
-
   for(i=0;i<m;i++){
-    //printf("%d : Isendtime with size %d\n", my_rank, sizes[i]);
-    get_iSendtime(sizes[i], NB_RUNS);
+    test_op(output_files, "Isend", sizes[i], NB_RUNS);
   }
 
   //Third Test : The Ping Pong
-  switch_file("PingPong");
-
   for(i=0;i<m;i++){
-    //printf("%d : PingPong Test with size %d\n", my_rank, sizes[i]);
-    get_PingPongtime(sizes[i], NB_RUNS);
+    test_op(output_files, "PingPong", sizes[i], NB_RUNS);
   }
 
-  //Fourth Test : MPI_Wtime
-  switch_file("Wtime");
-
-  get_Wtime(0, 10000000);
-
-  //Fifth Test : MPI_Iprobe
-  switch_file("Iprobe");
+  test_op(output_files, "Wtime", 0, 10000000);
 
   for(i=1; i<=10000; i*=10)
-    get_Iprobe(i, 10);
+    test_op(output_files, "Iprobe", i, NB_RUNS);
 
-  //Sixth Test : MPI_Test
-  switch_file("Test");
   for(i=1; i<=10000; i*=10)
-    get_Test(i, 10);
+    test_op(output_files, "Test", i, NB_RUNS);
 
     //second test is a test with the other datatype, to check if we have differences due to cache usage and buffering times
 /*    MPI_Aint  struct_size;*/
@@ -445,7 +394,10 @@ int main(int argc, char** argv){
 /*    */
 
   MPI_Finalize();
-  xmlCleanupParser();
 
-return 0;
+  for(int i = 0; names[i]; i++) {
+    fflush(output_files[i]);
+    fclose(output_files[i]);
+  }
+  return 0;
 }

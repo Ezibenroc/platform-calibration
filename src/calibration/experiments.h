@@ -9,11 +9,11 @@
 #include <time.h>
 #include "calibrate.h"
 
-double get_Recv(int count, int nb_it);
-double get_iSendtime(int count, int nb_it);
-double get_PingPongtime(int count, int nb_it);
-long get_Wtime(int count, int nb_it);
-double get_Iprobe(int count, int nb_it);
-double get_Test(int count, int nb_it);
+void get_Recv(FILE *file, int count, int nb_it);
+void get_Isend(FILE *file, int count, int nb_it);
+void get_PingPong(FILE *file, int count, int nb_it);
+void get_Wtime(FILE *file, int count, int nb_it);
+void get_Iprobe(FILE *file, int count, int nb_it);
+void get_Test(FILE *file, int count, int nb_it);
 
 #endif //__EXPERIMENTS_H_
