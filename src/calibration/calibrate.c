@@ -182,10 +182,55 @@ int op_from_string(const char *op_name) {
   exit(1);
 }
 
-void test_op(FILE *output_files[], const char *op_name, int size, int nb_runs) {
-  int op_id = op_from_string(op_name);
+void test_op(FILE *output_files[], int op_id, int size, int nb_runs) {
   functions[op_id](output_files[op_id], size, nb_runs);
 }
+
+typedef struct {
+  int op_id;
+  int size;
+} experiment_t;
+
+experiment_t *parse_experiment_file(const char *filename, int *nb_exp, int *largest_size, int min_size, int max_size) {
+  const int string_size = 100;
+  char *tmp = malloc(string_size);
+  char *token, *old=tmp;
+  int buffsize = 100;
+  int offset = 0, new_size, new_op;
+  experiment_t *buff = (experiment_t*)malloc(buffsize*sizeof(experiment_t));
+  assert(buff);
+  FILE *file = fopen(filename, "r");
+  if(file==NULL) {
+      printf("Error opening file %s \n", filename);
+      exit(-1);
+  }
+
+  *largest_size = 0;
+  while (fgets(tmp, string_size, file)) {
+    token = strsep(&tmp, ",");
+    new_op = op_from_string(token);
+    token = strsep(&tmp, ",");
+    new_size = atoi(token);
+    tmp = old;
+    if(new_size >= min_size && new_size <= max_size) {
+      if(*largest_size < new_size)
+        *largest_size = new_size;
+      buff[offset].op_id = new_op;
+      buff[offset].size = new_size;
+      offset ++;
+      if(offset == buffsize) {
+        buffsize *= 2;
+        buff = (experiment_t*)realloc(buff, buffsize*sizeof(experiment_t));
+        assert(buff);
+      }
+    }
+  }
+  free(tmp);
+  fclose(file);
+  *nb_exp = offset;
+  return buff;
+}
+
 
 int main(int argc, char** argv){
 
@@ -208,7 +253,6 @@ int main(int argc, char** argv){
   }
   //
 // load sizes from file
-  int sizes[MAX_LINES];
   int index;
   int my_rank;
   int size;
@@ -231,26 +275,14 @@ int main(int argc, char** argv){
 
   printf("[%d] MPI initialized\n", get_rank());
 
-  FILE* fin;
-  fin=fopen(arguments.sizefile, "r");
-  if(fin==NULL) {
-      printf("Error opening file %s \n", arguments.sizefile);
-      return -1;
-  }
   int max=-1;
   int i =0;
-  //read and compute max size
-  int offset=0;
-  while (fscanf(fin, "%d\n" , &sizes[m+offset]) != EOF  && offset<MAX_LINES) {
-    if(arguments.max_size==0 || (sizes[m+offset] < arguments.max_size && sizes[m+offset]>= arguments.min_size)){
-      if(sizes[m+offset]>max)max=sizes[m+offset];
-      offset++;
-    }
-  }
-  m = offset;
-  fclose(fin);
+  int nb_exp, largest_size;
 
-  printf("[%d] m = %d, max=%d\n",get_rank(), m, max);
+  experiment_t *experiments = parse_experiment_file(arguments.sizefile, &nb_exp, &largest_size,
+                                                    arguments.min_size, arguments.max_size);
+
+  printf("[%d] nb_exp=%d, largest_size=%d\n",get_rank(), nb_exp, largest_size);
   // Build a totally stupid datatype
   struct { int a;int c; double b;int test[10][3];int tab[2][3];} value;
   MPI_Datatype mystruct;
@@ -287,7 +319,7 @@ int main(int argc, char** argv){
   /* my_send_buffer = (void*)malloc(max*sizeof(value));   */
   /* my_receive_buffer = (void*)malloc(max*sizeof(value));*/
    
-  int max_buffer_size = max*2;
+  int max_buffer_size = largest_size*2;
   if(max_buffer_size < 10000)
     max_buffer_size = 10000;
   my_send_buffer = (void*)malloc(max_buffer_size);
@@ -305,40 +337,9 @@ int main(int argc, char** argv){
 
   //Init time
   base_time=get_time();
-
-  //First Test : The Receive
-  for(i=0;i<m;i++){
-    test_op(output_files, "Recv", sizes[i], NB_RUNS);
+  for(i = 0; i < nb_exp; i++) {
+    test_op(output_files, experiments[i].op_id, experiments[i].size, NB_RUNS);
   }
-
-
-  //Second Test : The Isend
-  for(i=0;i<m;i++){
-    test_op(output_files, "Isend", sizes[i], NB_RUNS);
-  }
-
-  //Third Test : The Ping Pong
-  for(i=0;i<m;i++){
-    test_op(output_files, "PingPong", sizes[i], NB_RUNS);
-  }
-
-  test_op(output_files, "Wtime", 0, 10000000);
-
-  for(i=1; i<=10000; i*=10)
-    test_op(output_files, "Iprobe", i, NB_RUNS);
-
-  for(i=1; i<=10000; i*=10)
-    test_op(output_files, "Test", i, NB_RUNS);
-
-    //second test is a test with the other datatype, to check if we have differences due to cache usage and buffering times
-/*    MPI_Aint  struct_size;*/
-/*    MPI_Type_extent(mystruct, &struct_size);*/
-/*    for(i=0;i<m;i++){*/
-/*      printf("%d : receive with size %d number of elts %d for struct of size %d\n", my_rank, sizes[i], sizes[i]/struct_size, struct_size);*/
-/*      get_Recv(sizes[i], mystruct, 0, NB_RUNS);*/
-/*    }*/
-/*    */
-/*    */
 
   MPI_Finalize();
 
@@ -346,5 +347,6 @@ int main(int argc, char** argv){
     fflush(output_files[i]);
     fclose(output_files[i]);
   }
+  free(experiments);
   return 0;
 }
