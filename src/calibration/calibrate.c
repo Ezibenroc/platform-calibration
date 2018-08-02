@@ -159,6 +159,11 @@ FILE *open_file(const char* name){
     char* filename= malloc(MAX_NAME_SIZE*sizeof(char));
     sprintf(filename, "%s/%s_%s.csv", dir_name, basename, name);
     FILE *file = fopen(filename, "w");
+    if(!file) {
+        perror("open_file");
+        fprintf(stderr, "Maybe directory %s does not exist?\n", dir_name);
+        exit(errno);
+    }
     free(filename);
     MPI_Barrier(MPI_COMM_WORLD);
     return file;
