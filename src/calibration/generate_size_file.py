@@ -7,5 +7,6 @@ exp = list(itertools.product(op, sizes))
 exp *= 50
 random.shuffle(exp)
 
+print('operation, size')
 for op, size in exp:
     print('%s, %d' % (op, size))

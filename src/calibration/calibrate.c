@@ -196,26 +196,73 @@ typedef struct {
   int size;
 } experiment_t;
 
+int is_blank(char c) {
+    return c == ' ' || c == '\n' || c == '\t';
+}
+
+// Trimming function, taken from https://stackoverflow.com/a/122721/4110059
+char *trimwhitespace(char *str) {
+  char *end;
+  // Trim leading space
+  while(is_blank(*str)) str++;
+  if(*str == 0)  // All spaces?
+    return str;
+  // Trim trailing space
+  end = str + strlen(str) - 1;
+  while(end > str && is_blank(*end)) end--;
+  // Write new null terminator character
+  end[1] = '\0';
+  return str;
+}
+
+void error_expfile(const char *msg) {
+  fprintf(stderr, "Wrong experiment file: %s\n", msg);
+  exit(1);
+}
+
 experiment_t *parse_experiment_file(const char *filename, int *nb_exp, int *largest_size, int min_size, int max_size) {
   const int string_size = 100;
   char *tmp = malloc(string_size);
-  char *token, *old=tmp;
+  char *token1, *token2, *old=tmp;
   int buffsize = 100;
   int offset = 0, new_size, new_op;
+  int size_first;
   experiment_t *buff = (experiment_t*)malloc(buffsize*sizeof(experiment_t));
   assert(buff);
   FILE *file = fopen(filename, "r");
-  if(file==NULL) {
-      printf("Error opening file %s \n", filename);
-      exit(-1);
-  }
+  if(file==NULL)
+    error_expfile("could not open it");
 
   *largest_size = 0;
+  if(!fgets(tmp, string_size, file))
+    error_expfile("file is empty");
+  token1 = trimwhitespace(strsep(&tmp, ","));
+  if(!tmp)
+    error_expfile("header has only one column");
+  token2 = trimwhitespace(strsep(&tmp, ","));
+  if(tmp)
+    error_expfile("header has more than two columns");
+  if(!strcmp(token1, "operation") && !strcmp(token2, "size")) {
+    size_first = 0;
+  }
+  else if(!strcmp(token1, "size") && !strcmp(token2, "operation")) {
+    size_first = 1;
+  }
+  else {
+    error_expfile("wrong header, expected column names 'size' and 'operation'\n");
+  }
+  tmp = old;
   while (fgets(tmp, string_size, file)) {
-    token = strsep(&tmp, ",");
-    new_op = op_from_string(token);
-    token = strsep(&tmp, ",");
-    new_size = atoi(token);
+    token1 = trimwhitespace(strsep(&tmp, ","));
+    token2 = trimwhitespace(strsep(&tmp, ","));
+    if(size_first) {
+      new_op = op_from_string(token2);
+      new_size = atoi(token1);
+    }
+    else {
+      new_op = op_from_string(token1);
+      new_size = atoi(token2);
+    }
     tmp = old;
     if(new_size >= min_size && new_size <= max_size) {
       if(*largest_size < new_size)
