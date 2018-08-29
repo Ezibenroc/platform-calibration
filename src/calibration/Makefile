@@ -7,12 +7,15 @@ LIBS=-lxml2 -lrt
 
 EXEC=calibrate
 
-default: calibrate bp_search1
+default: calibrate bp_search1 bp_search2
 
 calibrate: calibrate.c experiments.c 
 	$(CC) -o $@ $^ -I. $(LDIR) $(LIBS)
 
 bp_search1: bp_search1.c
+	$(CC) -o $@ $^ -I. $(LDIR) $(LIBS)
+
+bp_search2: bp_search2.c
 	$(CC) -o $@ $^ -I. $(LDIR) $(LIBS)
 
 .PHONY: clean
