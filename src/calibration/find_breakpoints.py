@@ -3,7 +3,6 @@ import sys
 
 
 def deadlock(mpi_opt, size):
-    print('deadlock(%d)' % size)
     args = ['mpirun', *mpi_opt, 'bp_search1', str(size)]
     try:
         subprocess.run(args, timeout=1, check=True, stdout=subprocess.DEVNULL)
@@ -14,7 +13,6 @@ def deadlock(mpi_opt, size):
 
 
 def corrupted(mpi_opt, size):
-    print('corrupted(%d)' % size)
     args = ['mpirun', *mpi_opt, 'bp_search2', str(size)]
     output = subprocess.run(args, check=True, stdout=subprocess.PIPE)
     output = output.stdout.decode('ascii').strip()
@@ -52,7 +50,7 @@ def run_search(mpi_opt, test_func, min_size=1, max_size=1000000):
 if __name__ == '__main__':
     if len(sys.argv) == 1:
         sys.exit('Syntax: %s <mpi_options>' % sys.argv[0])
-    bp1 = run_search(sys.argv[1:], deadlock)
+    bp1 = run_search(sys.argv[1:], corrupted)
     print('First breakpoint: %d' % bp1)
-    bp2 = run_search(sys.argv[1:], corrupted)
+    bp2 = run_search(sys.argv[1:], deadlock)
     print('Second breakpoint: %d' % bp2)
