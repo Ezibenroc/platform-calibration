@@ -2,7 +2,7 @@ import subprocess
 import sys
 
 
-def deadlock(mpi_opt, size):
+def deadlocked(mpi_opt, size):
     args = ['mpirun', *mpi_opt, 'bp_search1', str(size)]
     print(' '.join(args))
     try:
@@ -18,7 +18,7 @@ def corrupted(mpi_opt, size):
     print(' '.join(args))
     output = subprocess.run(args, check=True, stdout=subprocess.PIPE)
     output = output.stdout.decode('ascii').strip()
-    return output == 'corrupted'
+    return 'corrupted' in output
 
 
 class SearchError(Exception):
@@ -63,7 +63,7 @@ if __name__ == '__main__':
     except SearchError as e:
         bp1 = str(e)
     try:
-        bp2 = run_search(sys.argv[1:], deadlock)
+        bp2 = run_search(sys.argv[1:], deadlocked)
     except SearchError as e:
         bp2 = str(e)
     print()
