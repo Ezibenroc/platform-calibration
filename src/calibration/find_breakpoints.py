@@ -6,7 +6,7 @@ def deadlocked(mpi_opt, size):
     args = ['mpirun', *mpi_opt, 'bp_search1', str(size)]
     print(' '.join(args))
     try:
-        subprocess.run(args, timeout=1, check=True, stdout=subprocess.DEVNULL)
+        subprocess.run(args, timeout=1, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     except subprocess.TimeoutExpired:
         return True
     else:
@@ -16,7 +16,7 @@ def deadlocked(mpi_opt, size):
 def corrupted(mpi_opt, size):
     args = ['mpirun', *mpi_opt, 'bp_search2', str(size)]
     print(' '.join(args))
-    output = subprocess.run(args, check=True, stdout=subprocess.PIPE)
+    output = subprocess.run(args, check=True, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
     output = output.stdout.decode('ascii').strip()
     return 'corrupted' in output
 
