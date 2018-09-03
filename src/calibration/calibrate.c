@@ -36,7 +36,7 @@ We can set the maximum limit for the sizes with -s (as sizes go up to 1GB in zoo
 #include <argp.h>
 #include <string.h>
 #include "calibrate.h"
-
+#include "utils.h"
 
 #define MAX_LINES 2000
 #define NB_RUNS 10
@@ -100,37 +100,6 @@ static int parse_options (int key, char *arg, struct argp_state *state)
 
 struct argp argp = { options, parse_options, NULL, doc };
 my_args arguments;
-#ifdef HAVE_CLOCKGETTIME
-double precision = 1000000000;
-#elif HAVE_GETTIMEOFDAY
-double precision = 1000000;
-#endif
-
-//retrun timestamp in ns
-unsigned long long get_time(){
-#ifdef HAVE_CLOCKGETTIME
-  struct timespec tp;
-  clock_gettime (CLOCK_REALTIME, &tp);
-  return (tp.tv_sec * 1000000000 + tp.tv_nsec);
-#elif HAVE_GETTIMEOFDAY
-  struct timeval tv;
-  gettimeofday (&tv, NULL);
-  return (tv.tv_sec * 1000000 + tv.tv_usec)*1000;
-#endif
-}
-
-
-void my_sleep(unsigned long long length){
-#ifdef HAVE_CLOCKGETTIME
-  struct timespec tp;
-  tp.tv_sec=length/1000000000;
-  tp.tv_nsec=(length - tp.tv_sec*1000000000);
-  //printf("sleep for %lu s and %lu ns \n", tp.tv_sec, tp.tv_nsec);
-  nanosleep(&tp, NULL);
-#elif HAVE_GETTIMEOFDAY
-  usleep(length/1000);
-#endif
-}
 
 void* get_send_buffer(){
   return my_send_buffer;
@@ -169,13 +138,9 @@ FILE *open_file(const char* name){
     return file;
 }
 
-void print_in_file(FILE *file, const char* func, int count, unsigned long long start, unsigned long long resul){
-  fprintf(file, "%s,%d,%f,%e\n", func, count, (start-base_time)/precision, resul/precision);
-}
-
 
 static const char *names[] = {"Recv", "Isend", "PingPong", "Wtime", "Iprobe", "Test", NULL};
-static const void (*functions[])(FILE*, int, int) = {get_Recv, get_Isend, get_PingPong, get_Wtime,
+static const void (*functions[])(FILE*, int, int, unsigned long long) = {get_Recv, get_Isend, get_PingPong, get_Wtime,
                                                  get_Iprobe, get_Test};
 
 int op_from_string(const char *op_name) {
@@ -187,8 +152,8 @@ int op_from_string(const char *op_name) {
   exit(1);
 }
 
-void test_op(FILE *output_files[], int op_id, int size, int nb_runs) {
-  functions[op_id](output_files[op_id], size, nb_runs);
+void test_op(FILE *output_files[], int op_id, int size, int nb_runs, unsigned long long base_time) {
+  functions[op_id](output_files[op_id], size, nb_runs, base_time);
 }
 
 typedef struct {
@@ -390,7 +355,7 @@ int main(int argc, char** argv){
   //Init time
   base_time=get_time();
   for(i = 0; i < nb_exp; i++) {
-    test_op(output_files, experiments[i].op_id, experiments[i].size, NB_RUNS);
+    test_op(output_files, experiments[i].op_id, experiments[i].size, NB_RUNS, base_time);
   }
 
   MPI_Finalize();

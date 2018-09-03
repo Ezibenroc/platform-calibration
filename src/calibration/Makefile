@@ -9,7 +9,7 @@ EXEC=calibrate
 
 default: calibrate bp_search1 bp_search2
 
-calibrate: calibrate.c experiments.c 
+calibrate: calibrate.c experiments.c utils.c 
 	$(CC) -o $@ $^ -I. $(LDIR) $(LIBS)
 
 bp_search1: bp_search1.c
