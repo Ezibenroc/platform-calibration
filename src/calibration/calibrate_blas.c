@@ -71,7 +71,6 @@ double *allocate_matrix(int size) {
       exit(errno);
     }
     memset(result, 1, size*size*sizeof(double));
-    assert(result);
     return result;
 }
 
