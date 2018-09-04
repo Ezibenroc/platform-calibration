@@ -2,3 +2,4 @@
 src/calibration/calibrate
 src/saturation/saturation
 src/calibration/bp_search?
+src/calibration/calibrate_blas
