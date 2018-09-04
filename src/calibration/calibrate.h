@@ -1,14 +1,6 @@
 #ifndef __CALIBRATE_H_
 #define __CALIBRATE_H_
 
-#include "unistd.h"
-#if _POSIX_TIMERS
-#include <time.h>
-#define HAVE_CLOCKGETTIME 1
-#else
-#include <sys/time.h>
-#define HAVE_GETTIMEOFDAY 1
-#endif
 #include "mpi.h"
 #include "experiments.h"
 void* get_send_buffer();

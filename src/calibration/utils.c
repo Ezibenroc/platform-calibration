@@ -5,9 +5,9 @@
 #include "utils.h"
 
 #ifdef HAVE_CLOCKGETTIME
-#define PRECISION 1000000000;
+#define PRECISION 1000000000.0
 #elif HAVE_GETTIMEOFDAY
-#define PRECISION 1000000;
+#define PRECISION 1000000.0
 #else
 #define PRECISION 1
 #endif

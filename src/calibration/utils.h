@@ -1,7 +1,16 @@
+#include <stdio.h>
+
 #ifndef __CALIBRATE_UTILS_
 #define __CALIBRATE_UTILS_
 
-#include <stdio.h>
+#include "unistd.h"
+#if _POSIX_TIMERS
+#include <time.h>
+#define HAVE_CLOCKGETTIME 1
+#else
+#include <sys/time.h>
+#define HAVE_GETTIMEOFDAY 1
+#endif
 
 unsigned long long get_time();
 
