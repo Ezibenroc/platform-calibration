@@ -2,7 +2,6 @@
 #include <stdlib.h>
 #include <argp.h>
 #include <string.h>
-#include "calibrate.h"
 #include "utils.h"
 
 #ifdef USE_MKL
