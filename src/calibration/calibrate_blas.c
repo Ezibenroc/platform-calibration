@@ -5,6 +5,14 @@
 #include "calibrate.h"
 #include "utils.h"
 
+#ifdef USE_MKL
+#pragma message "Using the MKL for BLAS."
+#include <mkl.h>
+#else
+#pragma message "Not using the MKL for BLAS."
+#include <cblas.h>
+#endif
+
 #define MAX_LINES 2000
 #define NB_RUNS 10
 #define MAX_NAME_SIZE 256
@@ -79,9 +87,11 @@ FILE *open_file(const char* filename){
 
 void get_dgemm(FILE *file, int count, int nb_it, unsigned long long base_time, int write_file) {
   unsigned long long start_time, total_time;
+  double alpha = 1., beta=1.;
   for(int i=0; i<nb_it; i++) {
     start_time=get_time();
-    // call dgemm [...]
+    cblas_dgemm(CblasColMajor, CblasNoTrans, CblasTrans, count, count, count, alpha, matrix_A, count, matrix_B,
+            count, beta, matrix_C, count);
     total_time=get_time()-start_time;
     if(write_file)
       print_in_file(file, "dgemm", count, start_time-base_time, total_time);
@@ -90,9 +100,11 @@ void get_dgemm(FILE *file, int count, int nb_it, unsigned long long base_time, i
 
 void get_dtrsm(FILE *file, int count, int nb_it, unsigned long long base_time, int write_file) {
   unsigned long long start_time, total_time;
+  double alpha = 1., beta=1.;
   for(int i=0; i<nb_it; i++) {
     start_time=get_time();
-    // call dtrsm [...]
+    cblas_dtrsm(CblasColMajor, CblasRight, CblasLower, CblasNoTrans, CblasUnit, count, count, alpha, matrix_A,
+            count, matrix_B, count);
     total_time=get_time()-start_time;
     if(write_file)
       print_in_file(file, "dtrsm", count, start_time-base_time, total_time);

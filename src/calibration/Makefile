@@ -7,13 +7,20 @@ LIBS=-lxml2 -lrt
 
 EXEC=calibrate
 
+
+ifndef BLAS_INSTALLATION
+	BLAS_INSTALLATION=/
+endif
+BLAS_INCLUDE=$(BLAS_INSTALLATION)/include
+BLAS_LIB=$(BLAS_INSTALLATION)/lib
+
 default: calibrate bp_search1 bp_search2
 
 calibrate: calibrate.c experiments.c utils.c 
 	$(CC) -o $@ $^ -I. $(LDIR) $(LIBS)
 
 calibrate_blas: calibrate_blas.c utils.c
-	gcc -o $@ $^ -I. $(LDIR) $(LIBS)
+	gcc -O3 -o $@ $^ -lblas -I $(BLAS_INCLUDE) -L $(BLAS_LIB)
 
 bp_search1: bp_search1.c
 	$(CC) -o $@ $^ -I. $(LDIR) $(LIBS)
