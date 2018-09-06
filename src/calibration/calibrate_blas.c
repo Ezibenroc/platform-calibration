@@ -13,7 +13,7 @@
 #endif
 
 #define MAX_LINES 2000
-#define NB_RUNS 10
+#define NB_RUNS 3
 #define MAX_NAME_SIZE 256
 
 FILE* active_file = NULL;
