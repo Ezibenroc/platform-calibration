@@ -46,7 +46,7 @@ static void * my_send_buffer;
 static void * my_receive_buffer;
 
 FILE* active_file = NULL;
-char* basename = "calibration";
+char* my_basename = "calibration";
 char* dir_name  = ".";
 
 unsigned long long base_time;
@@ -126,7 +126,7 @@ int get_size(){
 
 FILE *open_file(const char* name){
     char* filename= malloc(MAX_NAME_SIZE*sizeof(char));
-    sprintf(filename, "%s/%s_%s.csv", dir_name, basename, name);
+    sprintf(filename, "%s/%s_%s.csv", dir_name, my_basename, name);
     FILE *file = fopen(filename, "w");
     if(!file) {
         perror("open_file");
@@ -158,7 +158,7 @@ int main(int argc, char** argv){
   }
 
   if(arguments.prefix!=NULL)
-    basename=arguments.prefix;
+    my_basename=arguments.prefix;
   if(arguments.dir_name!=NULL) {
     dir_name=arguments.dir_name;
   }
