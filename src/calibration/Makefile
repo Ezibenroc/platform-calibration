@@ -1,9 +1,9 @@
 CC=mpicc
 CFLAGS=-I$(IDIR)
 
-LDIR=-I/usr/include/libxml2
+LDIR=
 
-LIBS=-lxml2 -lrt
+LIBS=-lrt
 
 EXEC=calibrate
 
