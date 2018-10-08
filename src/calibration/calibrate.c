@@ -195,7 +195,7 @@ int main(int argc, char** argv){
   int nb_exp, largest_size;
 
   experiment_t *experiments = parse_experiment_file(names, arguments.sizefile, &nb_exp, &largest_size,
-                                                    arguments.min_size, arguments.max_size);
+                                                    arguments.min_size, arguments.max_size, 1);
 
   printf("[%d] nb_exp=%d, largest_size=%d\n",get_rank(), nb_exp, largest_size);
   // Build a totally stupid datatype
@@ -253,7 +253,7 @@ int main(int argc, char** argv){
   //Init time
   base_time=get_time();
   for(i = 0; i < nb_exp; i++) {
-    test_op(output_files, experiments[i].op_id, experiments[i].size, NB_RUNS, base_time);
+    test_op(output_files, experiments[i].op_id, experiments[i].sizes[0], NB_RUNS, base_time);
   }
 
   MPI_Finalize();

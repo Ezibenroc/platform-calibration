@@ -20,8 +20,8 @@ void get_PingPong(FILE *file, int count, int nb_it, unsigned long long base_time
       send_time = get_time();
       MPI_Recv(get_recv_buffer(), count, datatype, 1, tag, get_comm(), &status);
       recv_time = get_time()- send_time;
-      print_in_file(file, "MPI_Send",count, start_time-base_time, send_time - start_time);
-      print_in_file(file, "MPI_Recv",count, start_time-base_time, recv_time );
+      print_in_file(file, "MPI_Send", &count, 1, start_time-base_time, send_time - start_time);
+      print_in_file(file, "MPI_Recv", &count, 1, start_time-base_time, recv_time );
     }
   } else {
       for (i=0; i<nb_it; i++) {
@@ -44,7 +44,7 @@ void get_Isend(FILE *file, int count, int nb_it, unsigned long long base_time)
       start_time=get_time();
       MPI_Isend(get_send_buffer(), count, datatype, 1, tag, get_comm(), &req);
       total_time=get_time()-start_time;
-      print_in_file(file, "MPI_Isend", count, start_time-base_time, total_time);
+      print_in_file(file, "MPI_Isend", &count, 1, start_time-base_time, total_time);
       MPI_Recv(get_recv_buffer(), count, datatype, 1, tag, get_comm(), &status);
     }
   } else {
@@ -81,7 +81,7 @@ void get_Recv(FILE *file, int count, int nb_it, unsigned long long base_time)
       start_time=get_time();
       MPI_Recv(get_recv_buffer(), count, datatype, 1, tag, get_comm(), &status);
       total_time = get_time() - start_time;
-      print_in_file(file, "MPI_Recv", count, start_time-base_time, total_time);
+      print_in_file(file, "MPI_Recv", &count, 1, start_time-base_time, total_time);
     }
 
     MPI_Send(get_send_buffer(), count, datatype, 1, tag, get_comm());
@@ -124,7 +124,7 @@ void get_Iprobe(FILE *file, int count, int nb_it, unsigned long long base_time)
         start_time=get_time();
         MPI_Iprobe(1, tag, get_comm(), &flag, &status);
         total_time = get_time() - start_time;
-        print_in_file(file, "MPI_Iprobe", count, start_time-base_time, total_time);
+        print_in_file(file, "MPI_Iprobe", &count, 1, start_time-base_time, total_time);
       } while( !flag);
 
       MPI_Recv(get_recv_buffer(), count, datatype, 1, tag, get_comm(), &status);
@@ -159,7 +159,7 @@ void get_Wtime(FILE *file, int count, int nb_it, unsigned long long base_time)
       MPI_Wtime() ;
     }
     total_time = get_time() - start_time;
-    print_in_file(file, "MPI_Wtime", count, start_time-base_time, total_time);
+    print_in_file(file, "MPI_Wtime", &count, 1, start_time-base_time, total_time);
   /*
   double t1 = MPI_Wtime();
   while (MPI_Wtime() - t1 < nb_it) i++;
@@ -184,7 +184,7 @@ void get_Test(FILE *file, int count, int nb_it, unsigned long long base_time)
             start_time=get_time();
 		    MPI_Test( &req, &flag, &status );
 		    total_time = get_time() - start_time;
-            print_in_file(file, "MPI_Test", count, start_time-base_time, total_time);
+            print_in_file(file, "MPI_Test", &count, 1, start_time-base_time, total_time);
 	    } while (!flag);
     }
     MPI_Send(get_send_buffer(), count, datatype, 1, tag, get_comm());

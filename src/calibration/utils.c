@@ -38,8 +38,12 @@ void my_sleep(unsigned long long length){
 #endif
 }
 
-void print_in_file(FILE *file, const char* func, int count, unsigned long long start, unsigned long long result){
-  fprintf(file, "%s,%d,%f,%e\n", func, count, start/PRECISION, result/PRECISION);
+void print_in_file(FILE *file, const char* func, int *sizes, int nb_sizes, unsigned long long start, unsigned long long result){
+  fprintf(file, "%s,", func);
+  for(int i = 0; i < nb_sizes; i++) {
+    fprintf(file, "%d,", sizes[i]);
+  }
+  fprintf(file, "%f,%e\n", start/PRECISION, result/PRECISION);
 }
 
 int op_from_string(const char *all_names[], const char *op_name) {
@@ -76,13 +80,14 @@ void error_expfile(const char *msg) {
 }
 
 experiment_t *parse_experiment_file(const char *all_names[], const char *filename, int *nb_exp, int *largest_size,
-                                    int min_size, int max_size) {
+                                    int min_size, int max_size, int nb_sizes) {
   const int string_size = 100;
   char *tmp = malloc(string_size);
-  char *token1, *token2, *old=tmp;
+  char *old=tmp;
   int buffsize = 100;
-  int offset = 0, new_size, new_op;
-  int size_first;
+  int offset = 0;
+  assert(nb_sizes > 0 && nb_sizes <= MAX_NB_SIZES);
+  char *tokens[nb_sizes+1];
   experiment_t *buff = (experiment_t*)malloc(buffsize*sizeof(experiment_t));
   assert(buff);
   FILE *file = fopen(filename, "r");
@@ -90,48 +95,34 @@ experiment_t *parse_experiment_file(const char *all_names[], const char *filenam
     error_expfile("could not open it");
 
   *largest_size = 0;
-  if(!fgets(tmp, string_size, file))
-    error_expfile("file is empty");
-  token1 = trimwhitespace(strsep(&tmp, ","));
-  if(!tmp)
-    error_expfile("header has only one column");
-  token2 = trimwhitespace(strsep(&tmp, ","));
-  if(tmp)
-    error_expfile("header has more than two columns");
-  if(!strcmp(token1, "operation") && !strcmp(token2, "size")) {
-    size_first = 0;
-  }
-  else if(!strcmp(token1, "size") && !strcmp(token2, "operation")) {
-    size_first = 1;
-  }
-  else {
-    error_expfile("wrong header, expected column names 'size' and 'operation'\n");
-  }
-  tmp = old;
   while (fgets(tmp, string_size, file)) {
-    token1 = trimwhitespace(strsep(&tmp, ","));
-    token2 = trimwhitespace(strsep(&tmp, ","));
-    if(size_first) {
-      new_op = op_from_string(all_names, token2);
-      new_size = atoi(token1);
+    for(int i = 0; i <= nb_sizes; i++) {
+      tokens[i] = trimwhitespace(strsep(&tmp, ","));
     }
-    else {
-      new_op = op_from_string(all_names, token1);
-      new_size = atoi(token2);
+    buff[offset].op_id = op_from_string(all_names, tokens[0]);
+    int accepted_entry = 1;
+    int new_size_max=-1;
+    for(int i = 1; i <= nb_sizes; i++) {
+      int new_size = atoi(tokens[i]);
+      buff[offset].sizes[i-1] = new_size;
+      if(new_size < min_size || new_size > max_size) {
+        accepted_entry = 0;
+      }
+      if(new_size_max < new_size) {
+        new_size_max = new_size;
+      }
     }
-    tmp = old;
-    if(new_size >= min_size && new_size <= max_size) {
-      if(*largest_size < new_size)
-        *largest_size = new_size;
-      buff[offset].op_id = new_op;
-      buff[offset].size = new_size;
+    if(accepted_entry) {
       offset ++;
+      if(*largest_size < new_size_max)
+        *largest_size = new_size_max;
       if(offset == buffsize) {
         buffsize *= 2;
         buff = (experiment_t*)realloc(buff, buffsize*sizeof(experiment_t));
         assert(buff);
       }
     }
+    tmp = old;
   }
   free(tmp);
   fclose(file);

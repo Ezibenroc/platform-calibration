@@ -55,5 +55,4 @@ run: calibrate Analyze.pdf
 
 
 clean:
-	rm -f *.o *~ $(EXEC)
-
+	rm -f *.o *~ $(EXEC) calibrate_blas

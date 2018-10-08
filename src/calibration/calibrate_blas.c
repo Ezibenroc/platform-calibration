@@ -83,37 +83,48 @@ FILE *open_file(const char* filename){
     return file;
 }
 
-void get_dgemm(FILE *file, int count, int nb_it, unsigned long long base_time, int write_file) {
+int max3(const int *sizes) {
+  int m = sizes[0];
+  if(m < sizes[1])
+    m = sizes[1];
+  if(m < sizes[2])
+    m = sizes[2];
+  return m;
+}
+
+void get_dgemm(FILE *file, int *sizes, int nb_it, unsigned long long base_time, int write_file) {
   unsigned long long start_time, total_time;
   double alpha = 1., beta=1.;
+  int max_size = max3(sizes);
   for(int i=0; i<nb_it; i++) {
     start_time=get_time();
-    cblas_dgemm(CblasColMajor, CblasNoTrans, CblasTrans, count, count, count, alpha, matrix_A, count, matrix_B,
-            count, beta, matrix_C, count);
+    cblas_dgemm(CblasColMajor, CblasNoTrans, CblasTrans, sizes[0], sizes[1], sizes[2], alpha, matrix_A, max_size,
+            matrix_B, max_size, beta, matrix_C, max_size);
     total_time=get_time()-start_time;
     if(write_file)
-      print_in_file(file, "dgemm", count, start_time-base_time, total_time);
+      print_in_file(file, "dgemm", sizes, 3, start_time-base_time, total_time);
   }
 }
 
-void get_dtrsm(FILE *file, int count, int nb_it, unsigned long long base_time, int write_file) {
+void get_dtrsm(FILE *file, int *sizes, int nb_it, unsigned long long base_time, int write_file) {
   unsigned long long start_time, total_time;
   double alpha = 1., beta=1.;
+  int max_size = max3(sizes);
   for(int i=0; i<nb_it; i++) {
     start_time=get_time();
-    cblas_dtrsm(CblasColMajor, CblasRight, CblasLower, CblasNoTrans, CblasUnit, count, count, alpha, matrix_A,
-            count, matrix_B, count);
+    cblas_dtrsm(CblasColMajor, CblasRight, CblasLower, CblasNoTrans, CblasUnit, sizes[0], sizes[1], alpha, matrix_A,
+            max_size, matrix_B, max_size);
     total_time=get_time()-start_time;
     if(write_file)
-      print_in_file(file, "dtrsm", count, start_time-base_time, total_time);
+      print_in_file(file, "dtrsm", sizes, 3, start_time-base_time, total_time);
   }
 }
 
 static const char *names[] = {"dgemm", "dtrsm", NULL};
-static const void (*functions[])(FILE*, int, int, unsigned long long, int) = {get_dgemm, get_dtrsm};
+static const void (*functions[])(FILE*, int*, int, unsigned long long, int) = {get_dgemm, get_dtrsm};
 
-void test_op(FILE *result_file, int op_id, int size, int nb_runs, unsigned long long base_time, int write_file) {
-  functions[op_id](result_file, size, nb_runs, base_time, write_file);
+void test_op(FILE *result_file, experiment_t *exp, int nb_runs, unsigned long long base_time, int write_file) {
+  functions[exp->op_id](result_file, exp->sizes, nb_runs, base_time, write_file);
 }
 
 int main(int argc, char** argv){
@@ -143,7 +154,7 @@ int main(int argc, char** argv){
   int i =0;
   int nb_exp, largest_size;
 
-  experiment_t *experiments = parse_experiment_file(names, arguments.sizefile, &nb_exp, &largest_size, 1, 100000);
+  experiment_t *experiments = parse_experiment_file(names, arguments.sizefile, &nb_exp, &largest_size, 1, 100000, 3);
 
   printf("nb_exp=%d, largest_size=%d\n", nb_exp, largest_size);
 
@@ -158,7 +169,7 @@ int main(int argc, char** argv){
   base_time=get_time();
   do {
     for(i = 0; i < nb_exp; i++) {
-      test_op(result_file, experiments[i].op_id, experiments[i].size, NB_RUNS, base_time, !inf_loop);
+      test_op(result_file, &experiments[i], NB_RUNS, base_time, !inf_loop);
     }
   } while(inf_loop);
 
