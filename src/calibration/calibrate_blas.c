@@ -154,7 +154,7 @@ int main(int argc, char** argv){
   int i =0;
   int nb_exp, largest_size;
 
-  experiment_t *experiments = parse_experiment_file(names, arguments.sizefile, &nb_exp, &largest_size, 1, 100000, 3);
+  experiment_t *experiments = parse_experiment_file(names, arguments.sizefile, &nb_exp, &largest_size, -1, 100000, 3);
 
   printf("nb_exp=%d, largest_size=%d\n", nb_exp, largest_size);
 
