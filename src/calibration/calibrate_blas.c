@@ -38,7 +38,7 @@ static char doc[] = "Runs BLAS benchmarks to compute values used for SMPI calibr
 static struct argp_option options[] = {
   {"sizeFile", 's', "SIZEFILE", 0, "filename of the size list"},
   {"resultfile", 'o', "RESULTFILE", 0, "filename of the results"},
-  {"loop", 'l', 0, 0, "do an infinite loop"},
+  {"loop", 'l', "NB_LOOPS", 0, "number of (non-recorded) loops to run before and after the execution"},
   { 0 }
 };
 
@@ -47,7 +47,7 @@ static int parse_options (int key, char *arg, struct argp_state *state)
   my_args *arguments = state->input;
   switch (key){
   case 'l':
-    arguments->loop = 1;
+    arguments->loop = atoi(arg);
     break;
   case 's':
     arguments->sizefile = arg;
@@ -136,13 +136,13 @@ int main(int argc, char** argv){
     return 1;
   }
 
-  int inf_loop = arguments.loop;
+  int nb_loops = arguments.loop;
 
   if(arguments.sizefile==NULL){
     fprintf(stderr, "Please provide a name for a file containing a list of sizes\n");
     return -1;
   }
-  if(!inf_loop && arguments.resultfile==NULL){
+  if(arguments.resultfile==NULL){
     fprintf(stderr, "Please provide a name for a result file\n");
     return -1;
   }
@@ -151,7 +151,6 @@ int main(int argc, char** argv){
   if(arguments.resultfile)
     result_file = open_file(arguments.resultfile);
 
-  int i =0;
   int nb_exp, largest_size;
 
   experiment_t *experiments = parse_experiment_file(names, arguments.sizefile, &nb_exp, &largest_size, -1, 100000, 3);
@@ -167,16 +166,22 @@ int main(int argc, char** argv){
 
   //Init time
   base_time=get_time();
-  do {
-    for(i = 0; i < nb_exp; i++) {
-      test_op(result_file, &experiments[i], NB_RUNS, base_time, !inf_loop);
+  for(int i = 0; i < nb_loops; i++) {
+    for(int j = 0; j < nb_exp; j++) {
+      test_op(result_file, &experiments[j], NB_RUNS, base_time, 0);
     }
-  } while(inf_loop);
-
-  if(result_file) {
-    fflush(result_file);
-    fclose(result_file);
   }
+  for(int j = 0; j < nb_exp; j++) {
+    test_op(result_file, &experiments[j], NB_RUNS, base_time, 1);
+  }
+  for(int i = 0; i < nb_loops; i++) {
+    for(int j = 0; j < nb_exp; j++) {
+      test_op(result_file, &experiments[j], NB_RUNS, base_time, 0);
+    }
+  }
+
+  fflush(result_file);
+  fclose(result_file);
   free(experiments);
   free(matrix_A);
   free(matrix_B);
