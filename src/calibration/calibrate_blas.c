@@ -98,30 +98,16 @@ void get_dgemm(FILE *file, int *sizes, int nb_it, unsigned long long base_time, 
   int max_size = max3(sizes);
   for(int i=0; i<nb_it; i++) {
     start_time=get_time();
-    cblas_dgemm(CblasColMajor, CblasNoTrans, CblasTrans, sizes[0], sizes[1], sizes[2], alpha, matrix_A, max_size,
-            matrix_B, max_size, beta, matrix_C, max_size);
+    cblas_dgemm(CblasColMajor, CblasNoTrans, CblasTrans, sizes[0], sizes[1], sizes[2], alpha, matrix_A, sizes[3],
+            matrix_B, sizes[4], beta, matrix_C, sizes[5]);
     total_time=get_time()-start_time;
     if(write_file)
-      print_in_file(file, "dgemm", sizes, 3, start_time-base_time, total_time);
+      print_in_file(file, "dgemm", sizes, 6, start_time-base_time, total_time);
   }
 }
 
-void get_dtrsm(FILE *file, int *sizes, int nb_it, unsigned long long base_time, int write_file) {
-  unsigned long long start_time, total_time;
-  double alpha = 1., beta=1.;
-  int max_size = max3(sizes);
-  for(int i=0; i<nb_it; i++) {
-    start_time=get_time();
-    cblas_dtrsm(CblasColMajor, CblasRight, CblasLower, CblasNoTrans, CblasUnit, sizes[0], sizes[1], alpha, matrix_A,
-            max_size, matrix_B, max_size);
-    total_time=get_time()-start_time;
-    if(write_file)
-      print_in_file(file, "dtrsm", sizes, 3, start_time-base_time, total_time);
-  }
-}
-
-static const char *names[] = {"dgemm", "dtrsm", NULL};
-static const void (*functions[])(FILE*, int*, int, unsigned long long, int) = {get_dgemm, get_dtrsm};
+static const char *names[] = {"dgemm", NULL};
+static const void (*functions[])(FILE*, int*, int, unsigned long long, int) = {get_dgemm};
 
 void test_op(FILE *result_file, experiment_t *exp, int nb_runs, unsigned long long base_time, int write_file) {
   functions[exp->op_id](result_file, exp->sizes, nb_runs, base_time, write_file);
@@ -153,7 +139,7 @@ int main(int argc, char** argv){
 
   int nb_exp, largest_size;
 
-  experiment_t *experiments = parse_experiment_file(names, arguments.sizefile, &nb_exp, &largest_size, -1, 100000, 3);
+  experiment_t *experiments = parse_experiment_file(names, arguments.sizefile, &nb_exp, &largest_size, -1, 100000, 6);
 
   printf("nb_exp=%d, largest_size=%d\n", nb_exp, largest_size);
 

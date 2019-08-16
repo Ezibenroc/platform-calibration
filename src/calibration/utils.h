@@ -12,7 +12,7 @@
 #define HAVE_GETTIMEOFDAY 1
 #endif
 
-#define MAX_NB_SIZES 3
+#define MAX_NB_SIZES 6
 
 unsigned long long get_time();
 
