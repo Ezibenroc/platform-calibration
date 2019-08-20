@@ -16,6 +16,9 @@
 #define NB_RUNS 1
 #define MAX_NAME_SIZE 256
 
+#define MAX_OFFSET 1000000
+#define WRITE_MEMORY_SIZE 100000000
+
 FILE* active_file = NULL;
 char* basename = "calibration";
 char* dir_name  = ".";
@@ -65,13 +68,26 @@ struct argp argp = { options, parse_options, NULL, doc };
 my_args arguments;
 
 double *allocate_matrix(int size) {
-    double *result = (double*) malloc(size*size*sizeof(double));
+    size_t alloc_size = (size*size + MAX_OFFSET) * sizeof(double);
+    double *result = (double*) malloc(alloc_size);
     if(!result) {
       perror("malloc");
       exit(errno);
     }
-    memset(result, 1, size*size*sizeof(double));
+    memset(result, 1, alloc_size);
     return result;
+}
+
+void write_memory(void) {
+    static char *buff = NULL;
+    if(!buff) {
+        buff = malloc(WRITE_MEMORY_SIZE);
+        if(!buff) {
+            perror("malloc");
+            exit(errno);
+        }
+    }
+    memset(buff, rand()%256, WRITE_MEMORY_SIZE);
 }
 
 FILE *open_file(const char* filename){
@@ -98,8 +114,9 @@ void get_dgemm(FILE *file, int *sizes, int nb_it, unsigned long long base_time, 
   int max_size = max3(sizes);
   for(int i=0; i<nb_it; i++) {
     start_time=get_time();
-    cblas_dgemm(CblasColMajor, CblasNoTrans, CblasTrans, sizes[0], sizes[1], sizes[2], alpha, matrix_A, sizes[3],
-            matrix_B, sizes[4], beta, matrix_C, sizes[5]);
+    size_t offset = rand() % MAX_OFFSET;
+    cblas_dgemm(CblasColMajor, CblasNoTrans, CblasTrans, sizes[0], sizes[1], sizes[2], alpha, matrix_A+offset, sizes[3],
+            matrix_B+offset, sizes[4], beta, matrix_C+offset, sizes[5]);
     total_time=get_time()-start_time;
     if(write_file)
       print_in_file(file, "dgemm", sizes, 6, start_time-base_time, total_time);
@@ -111,10 +128,12 @@ static const void (*functions[])(FILE*, int*, int, unsigned long long, int) = {g
 
 void test_op(FILE *result_file, experiment_t *exp, int nb_runs, unsigned long long base_time, int write_file) {
   functions[exp->op_id](result_file, exp->sizes, nb_runs, base_time, write_file);
+  write_memory();
 }
 
 int main(int argc, char** argv){
 
+  srand(42);
   bzero (&arguments, sizeof(my_args));
 
   if (argp_parse (&argp, argc, argv, 0, 0, &arguments) == ARGP_KEY_ERROR){
