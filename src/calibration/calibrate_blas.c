@@ -74,7 +74,9 @@ double *allocate_matrix(int size) {
       perror("malloc");
       exit(errno);
     }
-    memset(result, 1, alloc_size);
+    for(int i = 0; i < size*size; i++) {
+        result[i] = (double)rand()/(double)(RAND_MAX);
+    }
     return result;
 }
 
