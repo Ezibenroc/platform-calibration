@@ -130,7 +130,6 @@ static const void (*functions[])(FILE*, int*, int, unsigned long long, int) = {g
 
 void test_op(FILE *result_file, experiment_t *exp, int nb_runs, unsigned long long base_time, int write_file) {
   functions[exp->op_id](result_file, exp->sizes, nb_runs, base_time, write_file);
-  write_memory();
 }
 
 int main(int argc, char** argv){
