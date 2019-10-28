@@ -2,6 +2,8 @@
 #include <stdlib.h>
 #include <argp.h>
 #include <string.h>
+#include <assert.h>
+#include <stdint.h>
 #include "utils.h"
 
 #ifdef USE_MKL
@@ -67,6 +69,58 @@ static int parse_options (int key, char *arg, struct argp_state *state)
 struct argp argp = { options, parse_options, NULL, doc };
 my_args arguments;
 
+/*
+ * Return 0b000...01...1, with n ones at the end.
+ */
+uint64_t __get_mask(unsigned n) {
+    if(n == 0)
+        return 0;
+    assert(n >= 0 && n < 64);
+    uint64_t mask = 1;
+    return (mask << n) - 1;
+}
+
+/*
+ * Return 0b000...01...10...0.
+ * The bits at positions [start, stop] are equal to 1, the others to 0 (start is the lower order).
+ */
+uint64_t get_mask(unsigned start, unsigned stop) {
+    assert(0 <= start && start <= stop && stop < 64);
+    uint64_t ones = __get_mask(stop);
+    uint64_t zeroes = ~__get_mask(start);
+    return ones & zeroes;
+}
+
+/*
+ * Apply the given mask to a double.
+ */
+double apply_mask(double x, uint64_t mask) {
+    uint64_t *tmp = (uint64_t*)&x;
+    (*tmp) |= mask;
+    return *((double*)tmp);
+}
+
+void __print_bits(uint64_t n, unsigned i) {
+    if(i == 64)
+        return;
+    __print_bits(n / 2, i+1);
+    if(n % 2)
+        printf("1");
+    else
+        printf("0");
+}
+
+void print_bits(uint64_t n) {
+    printf("0b");
+    __print_bits(n, 0);
+    printf("\n");
+}
+
+void print_bits_f(double x) {
+    uint64_t *tmp = (uint64_t*)&x;
+    print_bits(*tmp);
+}
+
 double *allocate_matrix(int size) {
     size_t alloc_size = (size*size + MAX_OFFSET) * sizeof(double);
     double *result = (double*) malloc(alloc_size);
@@ -74,8 +128,21 @@ double *allocate_matrix(int size) {
       perror("malloc");
       exit(errno);
     }
+#ifdef MASK_SIZE
+    uint64_t mask = get_mask(0, MASK_SIZE);
+#pragma message "Using a mask for the values of the matrix."
+#else
+    // Note that this particular mask does not do anything: apply_mask(x, get_mask(0, 0)) == x
+    // One need to change the stop and/or start indices to really apply a mask.
+    uint64_t mask = get_mask(0, 0);
+#endif
+    printf("Using the mask: ");
+    print_bits(mask);
+    double x = 3.1415926535897932384626433;
+    assert(x == apply_mask(x, get_mask(0, 0)));
+    assert(x != apply_mask(x, get_mask(0, 1)));
     for(int i = 0; i < size*size; i++) {
-        result[i] = (double)rand()/(double)(RAND_MAX);
+        result[i] = apply_mask((double)rand()/(double)(RAND_MAX), mask);
     }
     return result;
 }

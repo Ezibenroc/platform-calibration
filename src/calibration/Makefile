@@ -20,7 +20,7 @@ calibrate: calibrate.c experiments.c utils.c
 	$(CC) -o $@ $^ -I. $(LDIR) $(LIBS)
 
 calibrate_blas: calibrate_blas.c utils.c
-	gcc -O3 -o $@ $^ -lblas -I $(BLAS_INCLUDE) -L $(BLAS_LIB)
+	gcc $(CFLAGS) -O3 -o $@ $^ -lblas -I $(BLAS_INCLUDE) -L $(BLAS_LIB)
 
 bp_search1: bp_search1.c
 	$(CC) -o $@ $^ -I. $(LDIR) $(LIBS)
