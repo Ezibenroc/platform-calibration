@@ -121,7 +121,7 @@ void print_bits_f(double x) {
     print_bits(*tmp);
 }
 
-double *allocate_matrix(int size) {
+double *allocate_matrix(size_t size) {
     size_t alloc_size = (size*size + MAX_OFFSET) * sizeof(double);
     double *result = (double*) malloc(alloc_size);
     if(!result) {
@@ -230,7 +230,7 @@ int main(int argc, char** argv){
 
   printf("nb_exp=%d, largest_size=%d\n", nb_exp, largest_size);
 
-  int max_size = largest_size*largest_size;
+  size_t max_size = (size_t)largest_size*(size_t)largest_size;
   printf("Alloc size: %.2e bytes\n", (double)(max_size)*sizeof(double)*3);
 
   matrix_A = allocate_matrix(largest_size);
