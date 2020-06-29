@@ -1,7 +1,7 @@
 extract_keyword () {
     filename=$1
     keyword=$2
-    match=$(cat /tmp/paravance.xml| tr ' ' '\n' | grep -o "$keyword=\".*\"")
+    match=$(cat $filename | tr ' ' '\n' | grep -o "$keyword=\".*\"")
     match=$(echo $match | sed "s/$keyword=//g" | sed "s/\"//g")
     echo $match
 }
