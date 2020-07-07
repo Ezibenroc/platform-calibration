@@ -121,8 +121,8 @@ void print_bits_f(double x) {
     print_bits(*tmp);
 }
 
-double *allocate_matrix(size_t size_prod) {
-    size_t alloc_size = (size_prod + MAX_OFFSET) * sizeof(double);
+double *allocate_matrix(size_t size1, size_t size2) {
+    size_t alloc_size = (size1*size2 + MAX_OFFSET) * sizeof(double);
     double *result = (double*) malloc(alloc_size);
     if(!result) {
       perror("malloc");
@@ -141,7 +141,7 @@ double *allocate_matrix(size_t size_prod) {
     double x = 3.1415926535897932384626433;
     assert(x == apply_mask(x, get_mask(0, 0)));
     assert(x != apply_mask(x, get_mask(0, 1)));
-    for(int i = 0; i < size_prod; i++) {
+    for(int i = 0; i < size1*size2; i++) {
         result[i] = apply_mask((double)rand()/(double)(RAND_MAX), mask);
     }
     return result;
@@ -189,27 +189,15 @@ void test_op(FILE *result_file, experiment_t *exp, int nb_runs, unsigned long lo
   functions[exp->op_id](result_file, exp->sizes, nb_runs, base_time, write_file);
 }
 
-size_t __max(size_t i, size_t j) {
-  if(i > j) return i;
-  return j;
-}
 
-void get_alloc_sizes(experiment_t *exp, int nb_exp, size_t *size_A, size_t *size_B, size_t *size_C) {
+int get_max_size(experiment_t *exp, int nb_exp, int idx) {
   int max = -1;
-  size_t A, B, C;
-  *size_A = *size_B = *size_C = 0;
   for(int i = 0; i < nb_exp; i++) {
-    int *s = exp[i].sizes;
-    A = __max(s[3]*s[2], s[3]*s[0]); // max(lda*K, lda*M)
-    if(A > *size_A)
-      *size_A = A;
-    B = __max(s[4]*s[1], s[4]*s[2]); // max(ldb*N, ldb*K)
-    if(B > *size_B)
-      *size_B = B;
-    C = s[5]*s[1]; // ldc*N
-    if(C > *size_C)
-      *size_C = C;
+    int size = exp[i].sizes[idx];
+    if(max < size)
+      max = size;
   }
+  return max;
 }
 
 int main(int argc, char** argv){
@@ -244,15 +232,19 @@ int main(int argc, char** argv){
   printf("nb_exp=%d, largest_size=%d\n", nb_exp, largest_size);
 
   size_t max_size = (size_t)largest_size*(size_t)largest_size;
+  int max_M = get_max_size(experiments, nb_exp, 0);
+  int max_N = get_max_size(experiments, nb_exp, 1);
+  int max_K = get_max_size(experiments, nb_exp, 2);
+  printf("max(M)=%d | max(N)=%d | max(K)=%d\n", max_M, max_N, max_K);
   printf("Alloc size: was %.2e bytes\n", (double)(max_size)*sizeof(double)*3);
-  size_t size_A, size_B, size_C;
-  get_alloc_sizes(experiments, nb_exp, &size_A, &size_B, &size_C);
-  size_t total_alloc = size_A + size_B + size_C;
-  printf("Alloc size: now %.2e bytes\n", (double)total_alloc*sizeof(double));
+  double alloc_size = (double)max_M*(double)max_K;
+  alloc_size += (double)max_K*(double)max_N;
+  alloc_size += (double)max_M*(double)max_N;
+  printf("Alloc size: now %.2e bytes\n", alloc_size*sizeof(double));
 
-  matrix_A = allocate_matrix(size_A);
-  matrix_B = allocate_matrix(size_B);
-  matrix_C = allocate_matrix(size_C);
+  matrix_A = allocate_matrix(max_M, max_K);
+  matrix_B = allocate_matrix(max_K, max_N);
+  matrix_C = allocate_matrix(max_M, max_N);
 
   //Init time
   base_time=get_time();
