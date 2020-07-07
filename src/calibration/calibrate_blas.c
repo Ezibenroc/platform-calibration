@@ -168,19 +168,9 @@ FILE *open_file(const char* filename){
     return file;
 }
 
-int max3(const int *sizes) {
-  int m = sizes[0];
-  if(m < sizes[1])
-    m = sizes[1];
-  if(m < sizes[2])
-    m = sizes[2];
-  return m;
-}
-
 void get_dgemm(FILE *file, int *sizes, int nb_it, unsigned long long base_time, int write_file) {
   unsigned long long start_time, total_time;
   double alpha = 1., beta=1.;
-  int max_size = max3(sizes);
   for(int i=0; i<nb_it; i++) {
     start_time=get_time();
     size_t offset = rand() % MAX_OFFSET;
