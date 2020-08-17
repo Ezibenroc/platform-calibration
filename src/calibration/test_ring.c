@@ -51,6 +51,10 @@ void get_ring(FILE *file, int size, int nb_it, unsigned long long base_time) {
                 print_in_file(file, "MPI_Send", args, sizeof(args)/sizeof(args[0]), start_time-base_time, total_time);
             }
             else if(my_rank == receiver) {
+                int flag = 0;
+                while(!flag) {
+                    MPI_Iprobe(sender, 0, MPI_COMM_WORLD, &flag, MPI_STATUS_IGNORE);
+                }
                 start_time=get_time();
                 MPI_Recv(my_recv_buffer, size, MPI_CHAR, sender, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
                 total_time=get_time()-start_time;
