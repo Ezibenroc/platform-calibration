@@ -16,6 +16,9 @@ BLAS_LIB=$(BLAS_INSTALLATION)/lib
 
 default: calibrate bp_search1 bp_search2
 
+test_ring: test_ring.c utils.c 
+	$(CC) -o $@ $^ -I. $(LDIR) $(LIBS)
+
 calibrate: calibrate.c experiments.c utils.c 
 	$(CC) -o $@ $^ -I. $(LDIR) $(LIBS)
 
