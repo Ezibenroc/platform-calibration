@@ -39,30 +39,31 @@ void get_ring(FILE *file, int size, int nb_it, unsigned long long base_time) {
     unsigned long long start_time, total_time;
     double alpha = 1., beta=1.;
     for(int i=0; i<nb_it; i++) {
-
-        /* Start of the operation */
-        for(int rank=0; rank<nb_ranks; rank++) {
-            int sender = rank;
-            int receiver = (rank+1)%nb_ranks;
-            if(my_rank == sender) {
-                start_time=get_time();
-                MPI_Send(my_send_buffer, size, MPI_CHAR, receiver, 0, MPI_COMM_WORLD);
-                total_time=get_time()-start_time;
-                print_in_file(file, "MPI_Send", args, sizeof(args)/sizeof(args[0]), start_time-base_time, total_time);
-            }
-            else if(my_rank == receiver) {
-                int flag = 0;
-                while(!flag) {
-                    MPI_Iprobe(sender, 0, MPI_COMM_WORLD, &flag, MPI_STATUS_IGNORE);
-                }
-                start_time=get_time();
-                MPI_Recv(my_recv_buffer, size, MPI_CHAR, sender, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-                total_time=get_time()-start_time;
-                print_in_file(file, "MPI_Recv", args, sizeof(args)/sizeof(args[0]), start_time-base_time, total_time);
-            }
+        int recv_from = (my_rank-1+nb_ranks)%nb_ranks;
+        int send_to = (my_rank+1)%nb_ranks;
+// I am the root of the broadcast, I send
+        if(my_rank == 0) {
+            start_time=get_time();
+            MPI_Send(my_send_buffer, size, MPI_CHAR, send_to, 0, MPI_COMM_WORLD);
+            total_time=get_time()-start_time;
+            print_in_file(file, "MPI_Send", args, sizeof(args)/sizeof(args[0]), start_time-base_time, total_time);
         }
-        /* End of the operation */
-
+// I receive
+        int flag = 0;
+        while(!flag) {
+            MPI_Iprobe(recv_from, 0, MPI_COMM_WORLD, &flag, MPI_STATUS_IGNORE);
+        }
+        start_time=get_time();
+        MPI_Recv(my_recv_buffer, size, MPI_CHAR, recv_from, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        total_time=get_time()-start_time;
+        print_in_file(file, "MPI_Recv", args, sizeof(args)/sizeof(args[0]), start_time-base_time, total_time);
+// I am *not* the root of the broadcast, I send
+        if(my_rank != 0) {
+            start_time=get_time();
+            MPI_Send(my_send_buffer, size, MPI_CHAR, send_to, 0, MPI_COMM_WORLD);
+            total_time=get_time()-start_time;
+            print_in_file(file, "MPI_Send", args, sizeof(args)/sizeof(args[0]), start_time-base_time, total_time);
+        }
     }
 }
 
