@@ -2,13 +2,17 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <mpi.h>
+#include <cblas.h>
 #include "utils.h"
 
+#define MATRIX_SIZE 128
+#define MIN_BUFF_SIZE MATRIX_SIZE*MATRIX_SIZE*sizeof(double)
 #define MAX_NAME_SIZE 100
 #define NB_RUNS 10
 
 static void *my_send_buffer;
 static void *my_recv_buffer;
+static void *aux_buffer;
 
 
 FILE *open_file(const char *dir_name, const char *file_prefix){
@@ -50,7 +54,10 @@ void get_ring(FILE *file, int size, int nb_it, unsigned long long base_time) {
         }
 // I receive
         int flag = 0;
+        // Meanwhile we are waiting for a message to be there, we call dgemm
         while(!flag) {
+            cblas_dgemm(CblasColMajor, CblasNoTrans, CblasTrans, MATRIX_SIZE, MATRIX_SIZE, MATRIX_SIZE, 1., my_recv_buffer,
+                    MATRIX_SIZE, my_send_buffer, MATRIX_SIZE, 1., aux_buffer, MATRIX_SIZE);
             MPI_Iprobe(recv_from, 0, MPI_COMM_WORLD, &flag, MPI_STATUS_IGNORE);
         }
         start_time=get_time();
@@ -75,6 +82,8 @@ void test_op(FILE *result_file, experiment_t *exp, int nb_runs, unsigned long lo
 }
 
 void *allocate_buffer(int size) {
+    if(size < MIN_BUFF_SIZE)
+        size = MIN_BUFF_SIZE;
     char *buffer = (void*)malloc(size);
     if(buffer == NULL){
         fprintf(stderr, "Can't allocate memory (%g GB), decrease max size of the messages \n",
@@ -103,6 +112,7 @@ int main(int argc, char *argv[]) {
     FILE *result_file = open_file(output, "result");
     my_recv_buffer = allocate_buffer(largest_size);
     my_send_buffer = allocate_buffer(largest_size);
+    aux_buffer = allocate_buffer(largest_size);
 
     MPI_Barrier(MPI_COMM_WORLD);
     unsigned long long base_time=get_time();
@@ -116,5 +126,6 @@ int main(int argc, char *argv[]) {
     free(experiments);
     free(my_recv_buffer);
     free(my_send_buffer);
+    free(aux_buffer);
     return 0;
 }
