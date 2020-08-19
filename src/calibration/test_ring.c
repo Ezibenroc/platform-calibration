@@ -40,10 +40,10 @@ void send_msg(int size, int dst, FILE *file, int args[], int nb_args, unsigned l
     print_in_file(file, "MPI_Send", args, nb_args, start_time-base_time, total_time);
 }
 
-void recv_msg(int size, int src, FILE *file, int args[], int nb_args, unsigned long long base_time) {
+void recv_msg(int size, int src, FILE *file, int args[], int nb_args, unsigned long long base_time, int busy_waiting) {
     int flag = 0;
     // Meanwhile we are waiting for a message to be there, we call dgemm
-    while(!flag) {
+    while(busy_waiting & !flag) {
         cblas_dgemm(CblasColMajor, CblasNoTrans, CblasTrans, MATRIX_SIZE, MATRIX_SIZE, MATRIX_SIZE, 1., my_recv_buffer,
                 MATRIX_SIZE, my_send_buffer, MATRIX_SIZE, 1., aux_buffer, MATRIX_SIZE);
         MPI_Iprobe(src, 0, MPI_COMM_WORLD, &flag, MPI_STATUS_IGNORE);
@@ -70,7 +70,7 @@ void get_ring(FILE *file, int size, int nb_it, unsigned long long base_time) {
             send_msg(size, send_to, file, args, sizeof(args)/sizeof(args[0]), base_time);
         }
 // I receive
-        recv_msg(size, recv_from, file, args, sizeof(args)/sizeof(args[0]), base_time);
+        recv_msg(size, recv_from, file, args, sizeof(args)/sizeof(args[0]), base_time, 1);
 // I am *not* the root of the broadcast, I send
         if(my_rank != 0) {
             send_msg(size, send_to, file, args, sizeof(args)/sizeof(args[0]), base_time);
@@ -91,15 +91,15 @@ void get_ringrong(FILE *file, int size, int nb_it, unsigned long long base_time)
         int next = (my_rank+1)%nb_ranks;
         if(my_rank == 0) {
             send_msg(size, next, file, args, sizeof(args)/sizeof(args[0]), base_time);
-            recv_msg(size, next, file, args, sizeof(args)/sizeof(args[0]), base_time);
-            recv_msg(size, prev, file, args, sizeof(args)/sizeof(args[0]), base_time);
+            recv_msg(size, next, file, args, sizeof(args)/sizeof(args[0]), base_time, 0);
+            recv_msg(size, prev, file, args, sizeof(args)/sizeof(args[0]), base_time, 1);
             send_msg(size, prev, file, args, sizeof(args)/sizeof(args[0]), base_time);
         }
         else {
-            recv_msg(size, prev, file, args, sizeof(args)/sizeof(args[0]), base_time);
+            recv_msg(size, prev, file, args, sizeof(args)/sizeof(args[0]), base_time, 1);
             send_msg(size, prev, file, args, sizeof(args)/sizeof(args[0]), base_time);
             send_msg(size, next, file, args, sizeof(args)/sizeof(args[0]), base_time);
-            recv_msg(size, next, file, args, sizeof(args)/sizeof(args[0]), base_time);
+            recv_msg(size, next, file, args, sizeof(args)/sizeof(args[0]), base_time, 0);
         }
     }
 }
