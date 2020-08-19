@@ -33,6 +33,27 @@ FILE *open_file(const char *dir_name, const char *file_prefix){
 }
 
 
+void send_msg(int size, int dst, FILE *file, int args[], int nb_args, unsigned long long base_time) {
+    unsigned long long start_time=get_time();
+    MPI_Send(my_send_buffer, size, MPI_CHAR, dst, 0, MPI_COMM_WORLD);
+    unsigned long long total_time=get_time()-start_time;
+    print_in_file(file, "MPI_Send", args, nb_args, start_time-base_time, total_time);
+}
+
+void recv_msg(int size, int src, FILE *file, int args[], int nb_args, unsigned long long base_time) {
+    int flag = 0;
+    // Meanwhile we are waiting for a message to be there, we call dgemm
+    while(!flag) {
+        cblas_dgemm(CblasColMajor, CblasNoTrans, CblasTrans, MATRIX_SIZE, MATRIX_SIZE, MATRIX_SIZE, 1., my_recv_buffer,
+                MATRIX_SIZE, my_send_buffer, MATRIX_SIZE, 1., aux_buffer, MATRIX_SIZE);
+        MPI_Iprobe(src, 0, MPI_COMM_WORLD, &flag, MPI_STATUS_IGNORE);
+    }
+    unsigned long long start_time=get_time();
+    MPI_Recv(my_recv_buffer, size, MPI_CHAR, src, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    unsigned long long total_time=get_time()-start_time;
+    print_in_file(file, "MPI_Recv", args, nb_args, start_time-base_time, total_time);
+}
+
 void get_ring(FILE *file, int size, int nb_it, unsigned long long base_time) {
     static int my_rank = -1;
     static int nb_ranks = -1;
@@ -40,37 +61,19 @@ void get_ring(FILE *file, int size, int nb_it, unsigned long long base_time) {
         MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
         MPI_Comm_size(MPI_COMM_WORLD, &nb_ranks);
     }
-    unsigned long long start_time, total_time;
-    double alpha = 1., beta=1.;
     for(int i=0; i<nb_it; i++) {
         int args[] = {my_rank, size, op_id++};
         int recv_from = (my_rank-1+nb_ranks)%nb_ranks;
         int send_to = (my_rank+1)%nb_ranks;
 // I am the root of the broadcast, I send
         if(my_rank == 0) {
-            start_time=get_time();
-            MPI_Send(my_send_buffer, size, MPI_CHAR, send_to, 0, MPI_COMM_WORLD);
-            total_time=get_time()-start_time;
-            print_in_file(file, "MPI_Send", args, sizeof(args)/sizeof(args[0]), start_time-base_time, total_time);
+            send_msg(size, send_to, file, args, sizeof(args)/sizeof(args[0]), base_time);
         }
 // I receive
-        int flag = 0;
-        // Meanwhile we are waiting for a message to be there, we call dgemm
-        while(!flag) {
-            cblas_dgemm(CblasColMajor, CblasNoTrans, CblasTrans, MATRIX_SIZE, MATRIX_SIZE, MATRIX_SIZE, 1., my_recv_buffer,
-                    MATRIX_SIZE, my_send_buffer, MATRIX_SIZE, 1., aux_buffer, MATRIX_SIZE);
-            MPI_Iprobe(recv_from, 0, MPI_COMM_WORLD, &flag, MPI_STATUS_IGNORE);
-        }
-        start_time=get_time();
-        MPI_Recv(my_recv_buffer, size, MPI_CHAR, recv_from, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-        total_time=get_time()-start_time;
-        print_in_file(file, "MPI_Recv", args, sizeof(args)/sizeof(args[0]), start_time-base_time, total_time);
+        recv_msg(size, recv_from, file, args, sizeof(args)/sizeof(args[0]), base_time);
 // I am *not* the root of the broadcast, I send
         if(my_rank != 0) {
-            start_time=get_time();
-            MPI_Send(my_send_buffer, size, MPI_CHAR, send_to, 0, MPI_COMM_WORLD);
-            total_time=get_time()-start_time;
-            print_in_file(file, "MPI_Send", args, sizeof(args)/sizeof(args[0]), start_time-base_time, total_time);
+            send_msg(size, send_to, file, args, sizeof(args)/sizeof(args[0]), base_time);
         }
     }
 }
