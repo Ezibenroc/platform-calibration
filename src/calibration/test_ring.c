@@ -13,6 +13,7 @@
 static void *my_send_buffer;
 static void *my_recv_buffer;
 static void *aux_buffer;
+static int op_id = 0;
 
 
 FILE *open_file(const char *dir_name, const char *file_prefix){
@@ -39,10 +40,10 @@ void get_ring(FILE *file, int size, int nb_it, unsigned long long base_time) {
         MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
         MPI_Comm_size(MPI_COMM_WORLD, &nb_ranks);
     }
-    int args[] = {my_rank, size};
     unsigned long long start_time, total_time;
     double alpha = 1., beta=1.;
     for(int i=0; i<nb_it; i++) {
+        int args[] = {my_rank, size, op_id++};
         int recv_from = (my_rank-1+nb_ranks)%nb_ranks;
         int send_to = (my_rank+1)%nb_ranks;
 // I am the root of the broadcast, I send
