@@ -78,8 +78,34 @@ void get_ring(FILE *file, int size, int nb_it, unsigned long long base_time) {
     }
 }
 
-static const char *names[] = {"ring", NULL};
-static const void (*functions[])(FILE*, int, int, unsigned long long) = {get_ring};
+void get_ringrong(FILE *file, int size, int nb_it, unsigned long long base_time) {
+    static int my_rank = -1;
+    static int nb_ranks = -1;
+    if(my_rank < 0) {
+        MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
+        MPI_Comm_size(MPI_COMM_WORLD, &nb_ranks);
+    }
+    for(int i=0; i<nb_it; i++) {
+        int args[] = {my_rank, size, op_id++};
+        int prev = (my_rank-1+nb_ranks)%nb_ranks;
+        int next = (my_rank+1)%nb_ranks;
+        if(my_rank == 0) {
+            send_msg(size, next, file, args, sizeof(args)/sizeof(args[0]), base_time);
+            recv_msg(size, next, file, args, sizeof(args)/sizeof(args[0]), base_time);
+            recv_msg(size, prev, file, args, sizeof(args)/sizeof(args[0]), base_time);
+            send_msg(size, prev, file, args, sizeof(args)/sizeof(args[0]), base_time);
+        }
+        else {
+            recv_msg(size, prev, file, args, sizeof(args)/sizeof(args[0]), base_time);
+            send_msg(size, prev, file, args, sizeof(args)/sizeof(args[0]), base_time);
+            send_msg(size, next, file, args, sizeof(args)/sizeof(args[0]), base_time);
+            recv_msg(size, next, file, args, sizeof(args)/sizeof(args[0]), base_time);
+        }
+    }
+}
+
+static const char *names[] = {"Ring", "RingRong", NULL};
+static const void (*functions[])(FILE*, int, int, unsigned long long) = {get_ring, get_ringrong};
 
 void test_op(FILE *result_file, experiment_t *exp, int nb_runs, unsigned long long base_time) {
     functions[exp->op_id](result_file, exp->sizes[0], nb_runs, base_time);
