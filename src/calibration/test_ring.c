@@ -5,7 +5,10 @@
 #include <cblas.h>
 #include "utils.h"
 
+#ifndef MATRIX_SIZE
 #define MATRIX_SIZE 128
+#pragma message "Using default matrix size"
+#endif
 #define MIN_BUFF_SIZE MATRIX_SIZE*MATRIX_SIZE*sizeof(double)
 #define MAX_NAME_SIZE 100
 #define NB_RUNS 10
@@ -128,6 +131,7 @@ void *allocate_buffer(int size) {
 }
 
 int main(int argc, char *argv[]) {
+    printf("Matrix size: %d\n", MATRIX_SIZE);
     if(argc != 3) {
         fprintf(stderr, "Syntax: %s <input_file> <output_directory>\n");
         exit(1);
