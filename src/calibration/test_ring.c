@@ -10,12 +10,21 @@
 #pragma message "Using default matrix size"
 #endif
 #define MIN_BUFF_SIZE MATRIX_SIZE*MATRIX_SIZE*sizeof(double)
+#ifndef REUSE_BUFFER
+#define REUSE_BUFFER 1
+#endif
+#if REUSE_BUFFER
+#pragma message "Using the same buffers for communications and computations"
+#else
+#pragma message "Using different buffers for communications and computations"
+#endif
 #define MAX_NAME_SIZE 100
 #define NB_RUNS 10
 
 static void *my_send_buffer;
 static void *my_recv_buffer;
 static void *aux_buffer;
+static double *matrix_A, *matrix_B, *matrix_C;
 static int op_id = 0;
 
 
@@ -47,8 +56,8 @@ void recv_msg(int size, int src, FILE *file, int args[], int nb_args, unsigned l
     int flag = 0;
     // Meanwhile we are waiting for a message to be there, we call dgemm
     while(busy_waiting & !flag) {
-        cblas_dgemm(CblasColMajor, CblasNoTrans, CblasTrans, MATRIX_SIZE, MATRIX_SIZE, MATRIX_SIZE, 1., my_recv_buffer,
-                MATRIX_SIZE, my_send_buffer, MATRIX_SIZE, 1., aux_buffer, MATRIX_SIZE);
+        cblas_dgemm(CblasColMajor, CblasNoTrans, CblasTrans, MATRIX_SIZE, MATRIX_SIZE, MATRIX_SIZE, 1., matrix_A,
+                MATRIX_SIZE, matrix_B, MATRIX_SIZE, 1., matrix_C, MATRIX_SIZE);
         MPI_Iprobe(src, 0, MPI_COMM_WORLD, &flag, MPI_STATUS_IGNORE);
     }
     unsigned long long start_time=get_time();
@@ -147,6 +156,15 @@ int main(int argc, char *argv[]) {
     my_recv_buffer = allocate_buffer(largest_size);
     my_send_buffer = allocate_buffer(largest_size);
     aux_buffer = allocate_buffer(largest_size);
+#if REUSE_BUFFER
+    matrix_A = my_recv_buffer;
+    matrix_B = my_send_buffer;
+    matrix_C = aux_buffer;
+#else
+    matrix_A = allocate_buffer(MIN_BUFF_SIZE);
+    matrix_B = allocate_buffer(MIN_BUFF_SIZE);
+    matrix_C = allocate_buffer(MIN_BUFF_SIZE);
+#endif
 
     MPI_Barrier(MPI_COMM_WORLD);
     unsigned long long base_time=get_time();
@@ -161,5 +179,11 @@ int main(int argc, char *argv[]) {
     free(my_recv_buffer);
     free(my_send_buffer);
     free(aux_buffer);
+#if REUSE_BUFFER
+#else
+    free(matrix_A);
+    free(matrix_B);
+    free(matrix_C);
+#endif
     return 0;
 }
