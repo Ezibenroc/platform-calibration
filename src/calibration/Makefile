@@ -25,6 +25,9 @@ calibrate: calibrate.c experiments.c utils.c
 calibrate_blas: calibrate_blas.c utils.c
 	gcc $(CFLAGS) -O3 -o $@ $^ -lblas -I $(BLAS_INCLUDE) -L $(BLAS_LIB)
 
+test_memory: test_memory.c utils.c
+	gcc $(CFLAGS) -O3 -o $@ $^
+
 bp_search1: bp_search1.c
 	$(CC) -o $@ $^ -I. $(LDIR) $(LIBS)
 
