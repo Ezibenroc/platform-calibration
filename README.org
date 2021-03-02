@@ -89,6 +89,78 @@ Mandatory or optional arguments to long options are also mandatory or optional
 for any corresponding short options.
 #+END_EXAMPLE
 ** Complete example
-[...]
+This example relies on Python (version >= 3.6), but could be easily adapter to
+R. If the experiment is done on Grid'5000, we encourage the use of the [[https://github.com/Ezibenroc/peanut][peanut]]
+experiment engine.
+*** Generating the experiment file
+The following code generates a file, =/tmp/exp_mpi.csv=, that contains the list of
+MPI calls to perform.
+
+#+begin_src python :results output :session *python* :exports both
+import itertools
+import random
+
+random.seed(42)
+filename = '/tmp/exp_mpi.csv'
+
+op = ['Recv', 'Isend', 'PingPong', 'Wtime', 'Wtime', 'Iprobe', 'Test']
+sizes = [int(10**random.uniform(0, 9)) for _ in range(100)]
+exp = list(itertools.product(op, sizes))
+exp *= 20
+random.shuffle(exp)
+
+with open('/tmp/exp_mpi.csv', 'w') as f:
+    for op, size in exp:
+        f.write(f'{op},{size}\n')
+#+end_src
+
+#+RESULTS:
+*** Running the experiment (classical)
+First, clone this repository and compile the program on both nodes:
+#+begin_src sh
+git clone https://framagit.org/simgrid/platform-calibration.git
+cd platform-calibration/src/calibration
+make calibrate
+#+end_src
+
+Then, run the program (you might need to add other arguments to mpirun, like a
+hostfile and maybe a rankfile):
+#+BEGIN_SRC sh
+mkdir /tmp/exp
+mpirun -np 2 ./calibrate -d /tmp/exp -m 0 -M 1000000000 -p exp -s /tmp/exp_mpi.csv
+#+END_SRC
+
+This will create several result files in the directory =/tmp/exp=.
+
+*** Running the experiment (with peanut)
+An alternative way to run the experiment on Grid'5000 is to use peanut. First,
+connect to one of Grid'5000 frontends and install peanut:
+#+begin_src sh
+pip3 install --user git@github.com:Ezibenroc/peanut.git
+#+end_src
+
+Then, in addition of the file =/tmp/exp_mpi.csv= (see above), create the following
+file, named =/tmp/install_mpi.yaml=:
+#+BEGIN_SRC yaml
+monitoring: 0                  # positive number N to enable monitoring with a period N
+background_stress: False       # True to add calls to dgemm in the background
+openmpi: distribution_package  # distribution_package for a 'apt install openmpi', a version string (like "4.1.0") for an installation from source (warning: experimental)
+#+END_SRC
+
+Then, run the following command. It submits a job that will perform the
+experiment. Change the cluster name as needed.
+#+begin_src sh
+peanut MPICalibration run $(whoami) --deploy debian10-x64-base --cluster dahu --nbnodes 2 --walltime 01:00:00 --expfile /tmp/exp_mpi.csv --installfile /tmp/install_mpi.yaml --batch
+#+end_src
+
+You can query the scheduler to see if/when your job is scheduled: =oarstat -u -f=
+
+Once the job is running, the file =OAR.MPICalibration.*.stderr= will contain the
+log output of the job, you can inspect this file to see what happens.
+
+In the end, a =zip= archive will be created in your home directory, containing the
+experiment data as well as metadata.
+*** Analyzing the experiment
+TODO...
 * Dgemm calibration
 Forthcoming.
