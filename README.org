@@ -1,7 +1,13 @@
-* Platform Calibration (for SimGrid)
+#+TITLE: Platform Calibration (for SimGrid)
 This project gathers all efforts regarding platform calibration for HPC
 experiments with SimGrid's SMPI.
-** Network calibration
+* Table of content                                                      :TOC:
+- [[#network-calibration][Network calibration]]
+  - [[#explanations][Explanations]]
+  - [[#complete-example][Complete example]]
+- [[#dgemm-calibration][Dgemm calibration]]
+
+* Network calibration
 The =calibrate= binary is an MPI application that introduces a bunch of
 MPI experiments. The goal is to profile the amount of time taken to
 execute some MPI operations in a real environment. The timings for such
@@ -14,8 +20,8 @@ points textual file informing the message sizes where the MPI protocol
 changes. As output, the R script generates the values that need to be
 included to the corresponding platform file, in order to obtain a
 faithful simulation.
-*** Explanations
-**** The Profiled Operations
+** Explanations
+*** The Profiled Operations
 - *Blocking Receive* (R): time spent inside the /MPI_Recv/ function.
   During the benchmark initialization, through a ping-pong operation, the
   program measures how much time the sender must sleep between two benchmark
@@ -37,7 +43,7 @@ faithful simulation.
 - *Other operations* (OT): The network-unrelated functions /MPI_Test/,
   /MPI_Iprobe/ and /MPI_Wtime/ are also profiled during calibration since their CPU
   timings are neces
-**** Network Modeling
+*** Network Modeling
 The R and AS measurements (see above) represents the software overhead of the
 receive and send operations. Since the R is measured when the message is already
 available to be actually received, it is assumed that its duration consists
@@ -49,7 +55,7 @@ account for the software overhead, unrelated to network modeling itself. The
 network latency and bandwidth are calculated using the results of the PP
 measurements. Since the PP operation uses /MPI_Send/, we can check coherence of
 its behavior against the AS measurements (/MPI_Isend/).
-**** The Message Sizes and Variability Check
+*** The Message Sizes and Variability Check
 Addressing variability requires that multiple runs for each operation.  The
 number of replications can be set through the parameter =--nb_runs=.  Message
 sizes are taken in the order established in an input file whose name is passed
@@ -59,7 +65,7 @@ repartition for all magnitudes.  Regardless of the message sizes available in
 the input file, we can filter them by passing =--min_size= followed by the minimum
 size and =--max-size= for the maximum. Since sizes can go up to 1GB in the
 furnished size file, the analyst can create a cut to reduce experimental time.
-**** CLI Help and Parameter Description
+*** CLI Help and Parameter Description
 Call the =calibrate= binary passing the =--help= option. You'll get something like
 this:
 
@@ -82,7 +88,7 @@ Runs MPI point to point benchmarks to compute values used for SMPI calibration
 Mandatory or optional arguments to long options are also mandatory or optional
 for any corresponding short options.
 #+END_EXAMPLE
-*** Complete example
+** Complete example
 [...]
-** Dgemm calibration
+* Dgemm calibration
 Forthcoming.
