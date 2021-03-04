@@ -6,7 +6,7 @@ def deadlocked(mpi_opt, size):
     args = ['mpirun', *mpi_opt, 'bp_search1', str(size)]
     print(' '.join(args))
     try:
-        subprocess.run(args, timeout=1, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        subprocess.run(args, timeout=3, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     except subprocess.TimeoutExpired:
         return True
     else:
