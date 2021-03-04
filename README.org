@@ -161,6 +161,18 @@ log output of the job, you can inspect this file to see what happens.
 In the end, a =zip= archive will be created in your home directory, containing the
 experiment data as well as metadata.
 *** Analyzing the experiment
-TODO...
+The analysis of the experiment data and the generation of the platform file is
+demonstrated in notebook [[file:notebooks/mpi_calibration.ipynb][mpi_calibration.ipynb]].
+
+File [[file:notebooks/pyproject.toml][pyproject.toml]] list the high-level dependencies of this notebook while file
+[[file:notebooks/poetry.lock][poetry.lock]] is a lock-file of the exact versions used for all the dependencies
+(based on [[https://python-poetry.org/][Poetry]]).
+
+A simple way to install all the dependencies and run the notebook using poetry
+is to simply run the following command in the =notebooks= directory:
+#+BEGIN_SRC sh
+poetry install
+poetry run jupyter lab
+#+END_SRC
 * Dgemm calibration
 Forthcoming.

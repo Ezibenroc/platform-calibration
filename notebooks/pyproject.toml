@@ -1,0 +1,19 @@
+[tool.poetry]
+name = "notebooks"
+version = "0.1.0"
+description = ""
+authors = ["Tom Cornebize <tom.cornebize@univ-grenoble-alpes.fr>"]
+
+[tool.poetry.dependencies]
+python = "^3.7.3"
+pycewise = "^0.1.3"
+pandas = "^1.2.3"
+plotnine = "^0.7.1"
+jupyterlab = "^3.0.9"
+pyyaml = "^5.4.1"
+
+[tool.poetry.dev-dependencies]
+
+[build-system]
+requires = ["poetry>=0.12"]
+build-backend = "poetry.masonry.api"
