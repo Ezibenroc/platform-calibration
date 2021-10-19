@@ -92,6 +92,43 @@ for any corresponding short options.
 This example relies on Python (version >= 3.6), but could be easily adapter to
 R. If the experiment is done on Grid'5000, we encourage the use of the [[https://github.com/Ezibenroc/peanut][peanut]]
 experiment engine.
+*** Finding the semantic breakpoints
+Quoting [[https://tel.archives-ouvertes.fr/tel-03328956/document][a thesis]]:
+
+#+BEGIN_QUOTE
+SMPI is in charge of modeling the MPI behavior, both in terms of semantic and
+performance. The complex network optimizations done in real MPI implementations
+need to be considered when predicting the performance of MPI point-to-point
+communications. For instance, the behavior of =MPI_Send= depends on the message
+size. The smallest messages are sent asynchronously, meaning that =MPI_Send=
+returns immediately and the data is transferred without waiting. The largest
+messages are sent synchronously, i.e. the call to =MPI_Send= will be blocking,
+waiting for the corresponding =MPI_Recv= call to be made. The medium messages are
+sent in a detached way, the call to =MPI_Send= returns immediately but the data is
+only transferred when the corresponding =MPI_Recv= call is made. These different
+protocols strongly impact the communication performance, it is therefore
+important to model them accurately.
+#+END_QUOTE
+
+In SMPI, this is controlled by these two variables (that should be defined in
+the XML platform file):
+#+BEGIN_SRC xml
+<prop id="smpi/async-small-thresh" value="64000"/>
+<prop id="smpi/send-is-detached-thresh" value="64000"/>
+#+END_SRC
+
+To find these breakpoints, one can use the [[file:src/calibration/find_breakpoints.py][find_breakpoints.py]] script like this:
+#+begin_src sh
+make
+python find_breakpoints.py -np 2
+#+end_src
+It calls =mpirun= multiple times, doing a binary search for finding the two
+breakpoints. Any argument given after =find_breakpoints.py= will passed to =mpirun=
+as is (in this example, =-np 2=).
+
+Note: it is possible for the two semantic breakpoints to be equal, or for one of
+them to be missing, this simply means that there are only two different semantic
+modes instead of three.
 *** Generating the experiment file
 The following code generates a file, =/tmp/exp_mpi.csv=, that contains the list of
 MPI calls to perform.
